@@ -1,10 +1,11 @@
 import React from 'react';
-import { ChefHat, Plus, Download, Sparkles, RefreshCw, Smartphone } from 'lucide-react';
+import { ChefHat, Plus, Download, Upload, Sparkles, RefreshCw, Smartphone } from 'lucide-react';
 
 interface Props {
   recipeCount: number;
   onOpenManualModal: () => void;
   onExportJson: () => void;
+  onOpenImportModal?: () => void;
   onResetSamples: () => void;
   onOpenMobileConnectModal?: () => void;
   onOpenInstallModal?: () => void;
@@ -14,6 +15,7 @@ export const Navbar: React.FC<Props> = ({
   recipeCount,
   onOpenManualModal,
   onExportJson,
+  onOpenImportModal,
   onResetSamples,
   onOpenMobileConnectModal,
   onOpenInstallModal
@@ -83,6 +85,18 @@ export const Navbar: React.FC<Props> = ({
             <span>Recetas:</span>
             <span className="font-bold text-stone-900">{recipeCount}</span>
           </div>
+
+          {onOpenImportModal && (
+            <button
+              id="btn-import-recipes"
+              onClick={onOpenImportModal}
+              title="Importar copia de seguridad en JSON"
+              className="p-2 sm:px-3 sm:py-2 text-xs font-semibold text-amber-900 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors flex items-center gap-1.5 border border-amber-200 shadow-2xs cursor-pointer"
+            >
+              <Upload className="w-4 h-4 text-amber-700" />
+              <span className="hidden sm:inline">Importar</span>
+            </button>
+          )}
 
           <button
             id="btn-export-recipes"

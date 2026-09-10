@@ -13,8 +13,9 @@ import { ShoppingListModal } from './components/ShoppingListModal';
 import { MobileConnectModal } from './components/MobileConnectModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { InstallBanner } from './components/InstallBanner';
+import { ImportBackupModal } from './components/ImportBackupModal';
 import { NotificationToast } from './components/NotificationToast';
-import { ChefHat, Plus, SearchX, Sparkles, BookOpen } from 'lucide-react';
+import { ChefHat, Plus, SearchX, Sparkles, BookOpen, Upload } from 'lucide-react';
 
 const STORAGE_KEY = 'recetas_social_data_v1';
 
@@ -104,6 +105,7 @@ export default function App() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Partial<Recipe> | null>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // 4. Notifications / Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -210,6 +212,53 @@ export default function App() {
     }
   };
 
+  const handleImportRecipes = (importedRecipes: Recipe[], mode: 'merge' | 'replace') => {
+    if (!importedRecipes || importedRecipes.length === 0) {
+      addToast('warning', 'Sin datos', 'No se encontraron recetas para importar.');
+      return;
+    }
+
+    if (mode === 'replace') {
+      setRecipes(importedRecipes);
+      addToast(
+        'success',
+        'Copia restaurada',
+        `Colección reemplazada exitosamente con ${importedRecipes.length} recetas.`
+      );
+    } else {
+      // Merge mode:
+      setRecipes(prev => {
+        const existingIds = new Set(prev.map(r => r.id));
+        const updated = [...prev];
+        let addedCount = 0;
+        let updatedCount = 0;
+
+        importedRecipes.forEach(imported => {
+          const existingIdx = updated.findIndex(r => r.id === imported.id);
+          if (existingIdx >= 0) {
+            updated[existingIdx] = imported;
+            updatedCount++;
+          } else {
+            let finalId = imported.id;
+            if (existingIds.has(finalId)) {
+              finalId = `recipe-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+            }
+            existingIds.add(finalId);
+            updated.unshift({ ...imported, id: finalId });
+            addedCount++;
+          }
+        });
+
+        addToast(
+          'success',
+          'Importación completada',
+          `Se añadieron ${addedCount} recetas nuevas${updatedCount > 0 ? ` y se actualizaron ${updatedCount}` : ''}. Total: ${updated.length} recetas.`
+        );
+        return updated;
+      });
+    }
+  };
+
   // Filtered recipes
   const filteredRecipes = useMemo(() => {
     return recipes.filter(recipe => {
@@ -254,6 +303,7 @@ export default function App() {
         recipeCount={recipes.length}
         onOpenManualModal={handleOpenManualModal}
         onExportJson={handleExportJson}
+        onOpenImportModal={() => setIsImportModalOpen(true)}
         onResetSamples={handleResetSamples}
         onOpenMobileConnectModal={() => setIsMobileModalOpen(true)}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
@@ -351,6 +401,15 @@ export default function App() {
                     Restablecer filtros
                   </button>
                 )}
+
+                <button
+                  id="btn-empty-import-json"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Importar backup JSON</span>
+                </button>
 
                 <button
                   id="btn-empty-create-manual"
@@ -457,6 +516,15 @@ export default function App() {
       <InstallAppModal
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
+        onShowToast={addToast}
+      />
+
+      {/* JSON Backup Import Modal */}
+      <ImportBackupModal
+        isOpen={isImportModalOpen}
+        currentRecipeCount={recipes.length}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportRecipes={handleImportRecipes}
         onShowToast={addToast}
       />
     </div>
