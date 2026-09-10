@@ -1,0 +1,8 @@
+{
+  "name": "Videos Recetas Social",
+  "description": "Aplicación móvil-friendly para guardar, extraer y organizar recetas automáticamente desde YouTube, Instagram, Facebook y la web con IA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
