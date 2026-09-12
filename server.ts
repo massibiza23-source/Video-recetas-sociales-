@@ -709,16 +709,12 @@ function getSmartCulinaryFallback(
 }
 
 // API: Health check
-app.get("/api/health", (_req, res) => {
+app.get(["/api/health", "/health", "/api", "/api/test", "/test"], (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-app.get("/api/test", (_req, res) => {
-  res.json({ status: "test_ok" });
-});
-
 // API: Get available thumbnails for a video URL
-app.post("/api/video-thumbnails", async (req, res) => {
+app.post(["/api/video-thumbnails", "/video-thumbnails"], async (req, res) => {
   try {
     const { url } = req.body;
     if (!url) {
@@ -773,7 +769,7 @@ app.post("/api/video-thumbnails", async (req, res) => {
 });
 
 // API: Extract recipe from URL or manual text
-app.post("/api/extract-recipe", async (req, res) => {
+app.post(["/api/extract-recipe", "/extract-recipe"], async (req, res) => {
   try {
     const { url, rawText, platformHint } = req.body;
 
@@ -1107,7 +1103,7 @@ INSTRUCCIONES CLAVE:
 });
 
 // API: Extract recipe from uploaded mobile video frames
-app.post("/api/extract-recipe-from-frames", async (req, res) => {
+app.post(["/api/extract-recipe-from-frames", "/extract-recipe-from-frames"], async (req, res) => {
   try {
     const { frames, videoTitle, notes, durationSeconds } = req.body;
     if (!frames || !Array.isArray(frames) || frames.length === 0) {
@@ -1350,7 +1346,29 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
   }
 });
 
-// Vite middleware & Static serving
+// Fallback 404 handler for API routes
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api') || req.path.startsWith('/api') || req.url.startsWith('/extract-recipe')) {
+    return res.status(404).json({
+      success: false,
+      error: `Ruta de API no encontrada: ${req.method} ${req.url}`
+    });
+  }
+  next();
+});
+
+// Global unhandled error handler
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("Server unhandled error:", err);
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      error: "Error interno del servidor: " + (err?.message || "Error desconocido")
+    });
+  }
+});
+
+// Vite middleware & Static serving (Standalone mode only)
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");
@@ -1363,19 +1381,39 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.sendFile(path.join(distPath, 'index.html'), (err) => {
+        if (err && !res.headersSent) {
+          res.status(404).send("Página no encontrada");
+        }
+      });
     });
   }
 
-  if (!process.env.VERCEL) {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Recetas Social Server running on port ${PORT}`);
-    });
-  }
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Recetas Social Server running on port ${PORT}`);
+  });
 }
 
-if (!process.env.VERCEL) {
+// Only start the server when run directly in Node (e.g. tsx server.ts or node dist/server.cjs),
+// never when imported by api/index.ts or executed inside a serverless function (Vercel, Lambda).
+const isServerless = Boolean(
+  process.env.VERCEL || 
+  process.env.AWS_LAMBDA_FUNCTION_NAME || 
+  process.env.LAMBDA_TASK_ROOT || 
+  process.env.FUNCTIONS_WORKER_RUNTIME
+);
+
+const isDirectEntry = Boolean(
+  process.argv[1] && (
+    process.argv[1].endsWith('server.ts') || 
+    process.argv[1].endsWith('server.cjs') || 
+    process.argv[1].endsWith('server.js')
+  )
+);
+
+if (isDirectEntry && !isServerless) {
   startServer();
 }
 
 export default app;
+

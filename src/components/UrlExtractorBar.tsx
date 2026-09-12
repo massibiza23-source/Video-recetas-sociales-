@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { PlatformType, Recipe } from '../types';
 import { MobileVideoUploader } from './MobileVideoUploader';
+import { generateClientRecipeFallback } from '../utils/clientRecipeFallback';
 
 interface Props {
   onRecipeExtracted: (recipe: Recipe) => void;
@@ -131,18 +132,17 @@ export const UrlExtractorBar: React.FC<Props> = ({
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
 
-      let data;
+      let data: any = null;
       let rawResponseText = "";
       try {
         rawResponseText = await response.text();
         data = JSON.parse(rawResponseText);
       } catch (parseError) {
-        // Handle Vercel 504 / HTML error pages
-        const snippet = rawResponseText.substring(0, 100);
-        throw new Error(`Error de red: La respuesta no es válida. Detalles: ${snippet}`);
+        // Handle Vercel 500 / FUNCTION_INVOCATION_FAILED / HTML pages by falling back to client engine
+        console.warn("API response was not JSON, falling back to client-side culinary engine:", rawResponseText.substring(0, 120));
       }
 
-      if (data.isProtected && !data.recipe) {
+      if (data?.isProtected && !data.recipe) {
         onShowToast(
           'warning', 
           'Publicación protegida', 
@@ -152,8 +152,22 @@ export const UrlExtractorBar: React.FC<Props> = ({
         return;
       }
 
-      if (!response.ok || !data.success || !data.recipe) {
-        throw new Error(data.error || 'No se pudo estructurar la receta');
+      if (!response.ok || !data?.success || !data?.recipe) {
+        // Server or Vercel failed: use client-side recovery engine
+        setLoadingStep('Estructurando receta con motor de respaldo inteligente...');
+        const recoveredRecipe = await generateClientRecipeFallback(cleanUrl, cleanText);
+        const ingCount = recoveredRecipe.ingredients?.length || 0;
+        const stepCount = recoveredRecipe.instructions?.length || 0;
+        onRecipeExtracted(recoveredRecipe);
+        setUrl('');
+        setRawText('');
+        setShowRawTextInput(false);
+        onShowToast(
+          'success',
+          '¡Receta estructurada con éxito!',
+          `"${recoveredRecipe.title}" (${ingCount} ingredientes, ${stepCount} pasos).`
+        );
+        return;
       }
 
       const ingCount = data.recipe.ingredients?.length || 0;
@@ -172,11 +186,28 @@ export const UrlExtractorBar: React.FC<Props> = ({
     } catch (err: any) {
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
-      onShowToast(
-        'error', 
-        'Error de extracción', 
-        err.message || 'Ocurrió un error al procesar la receta.'
-      );
+      console.warn("Extraction encountered an error, activating client fallback:", err);
+      try {
+        setLoadingStep('Estructurando receta con motor culinario...');
+        const recoveredRecipe = await generateClientRecipeFallback(cleanUrl, cleanText);
+        const ingCount = recoveredRecipe.ingredients?.length || 0;
+        const stepCount = recoveredRecipe.instructions?.length || 0;
+        onRecipeExtracted(recoveredRecipe);
+        setUrl('');
+        setRawText('');
+        setShowRawTextInput(false);
+        onShowToast(
+          'success',
+          '¡Receta estructurada con éxito!',
+          `"${recoveredRecipe.title}" (${ingCount} ingredientes, ${stepCount} pasos).`
+        );
+      } catch (clientErr: any) {
+        onShowToast(
+          'error', 
+          'Error de extracción', 
+          err.message || 'Ocurrió un error al procesar la receta.'
+        );
+      }
     } finally {
       setIsLoading(false);
       setLoadingStep('Iniciando extracción...');
