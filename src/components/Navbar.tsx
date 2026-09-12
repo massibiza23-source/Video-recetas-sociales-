@@ -52,8 +52,8 @@ export const Navbar: React.FC<Props> = ({
               id="btn-nav-install-pwa"
               type="button"
               onClick={onOpenInstallModal}
-              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-50 hover:bg-amber-100 active:bg-amber-200 border border-amber-200/90 rounded-lg transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer group"
-              title="Instalar y añadir icono a la pantalla de inicio"
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:from-amber-700 active:to-orange-700 rounded-xl transition-all flex items-center gap-1.5 shadow-xs shadow-amber-600/20 cursor-pointer group"
+              title="Instalar app en tu móvil u ordenador (solución si no ves los 3 puntos)"
             >
               <img
                 src="/pwa-192x192.png"

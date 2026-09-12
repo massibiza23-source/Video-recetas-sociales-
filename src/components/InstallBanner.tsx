@@ -33,18 +33,27 @@ export const InstallBanner: React.FC<Props> = ({ onOpenInstallModal }) => {
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4">
         {/* Left info with app icon */}
-        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div 
+          onClick={onOpenInstallModal}
+          className="flex items-center gap-2.5 sm:gap-3 min-w-0 cursor-pointer flex-1"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === 'Enter' && onOpenInstallModal()}
+        >
           <img
             src="/pwa-192x192.png"
             alt="Recetas Social"
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-xs border border-white/30 shrink-0"
           />
           <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-bold truncate">
-              Instala Recetas en tu pantalla de inicio
+            <p className="text-xs sm:text-sm font-bold truncate flex items-center gap-1.5">
+              <span>Instala Recetas en tu pantalla de inicio</span>
             </p>
             <p className="text-[11px] text-amber-100 hidden sm:block truncate">
-              Ábrela a pantalla completa y extrae videos directamente desde TikTok, Instagram o YouTube.
+              ¿No ves los 3 puntos del navegador? Toca aquí para ver cómo instalarla con 1 toque o abrirla en Chrome.
+            </p>
+            <p className="text-[10px] text-amber-200 sm:hidden truncate">
+              ¿No ves los 3 puntos? Toca aquí para instalar
             </p>
           </div>
         </div>

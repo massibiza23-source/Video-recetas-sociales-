@@ -14,7 +14,11 @@ import {
   Sparkles,
   Info,
   CheckCircle2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Copy,
+  AlertCircle,
+  HelpCircle,
+  ArrowDown
 } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
@@ -40,8 +44,23 @@ export const InstallAppModal: React.FC<Props> = ({
   });
 
   const [installing, setInstalling] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [showTroubleshoot, setShowTroubleshoot] = useState(true);
 
   if (!isOpen) return null;
+
+  const handleCopyAppUrl = async () => {
+    try {
+      const url = typeof window !== 'undefined' ? window.location.href : '';
+      if (!url) return;
+      await navigator.clipboard.writeText(url);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 3000);
+      onShowToast('success', '¡Enlace copiado!', 'Abre Google Chrome en tu móvil y pega el enlace para instalar la app.');
+    } catch {
+      onShowToast('info', 'Enlace', typeof window !== 'undefined' ? window.location.href : '');
+    }
+  };
 
   const handleNativeInstall = async () => {
     setInstalling(true);
@@ -306,6 +325,9 @@ export const InstallAppModal: React.FC<Props> = ({
                   <p className="text-stone-600 mt-0.5">
                     Ubicado en la esquina superior derecha de Google Chrome o de tu navegador.
                   </p>
+                  <p className="text-amber-800 font-medium mt-1 bg-amber-50 p-1.5 rounded-lg text-[11px] border border-amber-200/60">
+                    💡 <strong>¿No ves los 3 puntos?</strong> Desliza la pantalla hacia abajo con el dedo para que reaparezcan, o consulta la sección de ayuda más abajo.
+                  </p>
                 </div>
               </div>
 
@@ -381,6 +403,92 @@ export const InstallAppModal: React.FC<Props> = ({
               </div>
             </div>
           )}
+
+          {/* Missing 3 Dots Helper & Direct Solutions */}
+          <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-b from-amber-50/90 to-orange-50/40 p-3.5 sm:p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs sm:text-sm">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0" />
+                <span>¿No ves los 3 puntos (⋮) en tu navegador?</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTroubleshoot(prev => !prev)}
+                className="text-xs font-semibold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+              >
+                {showTroubleshoot ? 'Ocultar' : 'Ver solución'}
+              </button>
+            </div>
+
+            {showTroubleshoot && (
+              <div className="space-y-2.5 text-xs text-stone-700 animate-in fade-in">
+                <p className="text-[11px] text-stone-600">
+                  Si los 3 puntos desaparecieron de la pantalla, suele deberse a una de estas situaciones:
+                </p>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200/80 flex items-start gap-2 shadow-2xs">
+                    <span className="font-bold text-amber-800 text-xs px-1.5 py-0.5 rounded bg-amber-100 shrink-0">1</span>
+                    <div className="text-[11px]">
+                      <strong className="text-stone-900">Desliza la pantalla hacia abajo con el dedo</strong>: En Chrome para Android, los 3 puntos se esconden automáticamente al hacer scroll hacia abajo. Al deslizar el dedo hacia abajo reaparecen de inmediato.
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200/80 flex items-start gap-2 shadow-2xs">
+                    <span className="font-bold text-amber-800 text-xs px-1.5 py-0.5 rounded bg-amber-100 shrink-0">2</span>
+                    <div className="text-[11px]">
+                      <strong className="text-stone-900">¿Abriste desde WhatsApp, Instagram o TikTok?</strong>: Estás en el visor interno de la red social. Toca el menú de opciones de esa app (arriba a la derecha) y pulsa <em>&quot;Abrir en Chrome&quot;</em> o <em>&quot;Abrir en navegador&quot;</em>.
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200/80 flex items-start gap-2 shadow-2xs">
+                    <span className="font-bold text-amber-800 text-xs px-1.5 py-0.5 rounded bg-amber-100 shrink-0">3</span>
+                    <div className="text-[11px]">
+                      <strong className="text-stone-900">¿Estás en un iPhone o iPad?</strong>: En Apple NO existen los 3 puntos. El botón para instalar es el icono de <strong>Compartir</strong> (cuadrado con flecha hacia arriba ⎋) en la barra inferior de Safari.
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 bg-white rounded-xl border border-amber-200/80 flex items-start gap-2 shadow-2xs">
+                    <span className="font-bold text-amber-800 text-xs px-1.5 py-0.5 rounded bg-amber-100 shrink-0">4</span>
+                    <div className="text-[11px]">
+                      <strong className="text-stone-900">Solución directa para abrir en Chrome</strong>: Copia el enlace directo con el botón de abajo y pégalo directamente en la barra de Google Chrome en tu teléfono.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    id="btn-copy-app-url"
+                    onClick={handleCopyAppUrl}
+                    className="px-3.5 py-2 rounded-xl bg-white hover:bg-stone-50 active:bg-stone-100 border border-amber-300 text-xs font-bold text-stone-800 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                  >
+                    {copiedUrl ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700">¡Enlace copiado! Pégalo en Chrome</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Copiar enlace de la App</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={typeof window !== 'undefined' ? window.location.href : '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-xs font-bold text-white flex items-center gap-1.5 shadow-2xs transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Abrir en pestaña nueva</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* App Advantages summary */}
           <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/60 text-xs text-amber-900 space-y-1">
