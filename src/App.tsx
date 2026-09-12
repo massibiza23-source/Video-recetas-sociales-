@@ -14,6 +14,7 @@ import { MobileConnectModal } from './components/MobileConnectModal';
 import { InstallAppModal } from './components/InstallAppModal';
 import { InstallBanner } from './components/InstallBanner';
 import { ImportBackupModal } from './components/ImportBackupModal';
+import { ShareInteractiveHtmlModal } from './components/ShareInteractiveHtmlModal';
 import { NotificationToast } from './components/NotificationToast';
 import { ChefHat, Plus, SearchX, Sparkles, BookOpen, Upload } from 'lucide-react';
 
@@ -106,6 +107,7 @@ export default function App() {
   const [editingRecipe, setEditingRecipe] = useState<Partial<Recipe> | null>(null);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [shareHtmlRecipe, setShareHtmlRecipe] = useState<Recipe | null>(null);
 
   // 4. Notifications / Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -361,6 +363,7 @@ export default function App() {
                   onOpenEdit={handleOpenEditModal}
                   onOpenPhotoModal={setPhotoRecipe}
                   onOpenShoppingList={setShoppingListRecipe}
+                  onOpenShareHtml={setShareHtmlRecipe}
                   onDelete={handleDeleteRecipe}
                   onShowToast={addToast}
                 />
@@ -448,6 +451,7 @@ export default function App() {
           onOpenEdit={handleOpenEditModal}
           onOpenPhotoModal={setPhotoRecipe}
           onOpenShoppingList={setShoppingListRecipe}
+          onOpenShareHtml={setShareHtmlRecipe}
           onUpdateRecipe={handleSaveRecipe}
           onShowToast={addToast}
         />
@@ -462,6 +466,7 @@ export default function App() {
           onOpenEdit={handleOpenEditModal}
           onOpenPhotoModal={setPhotoRecipe}
           onOpenShoppingList={setShoppingListRecipe}
+          onOpenShareHtml={setShareHtmlRecipe}
           onUpdateRecipe={handleSaveRecipe}
           onShowToast={addToast}
         />
@@ -525,6 +530,14 @@ export default function App() {
         currentRecipeCount={recipes.length}
         onClose={() => setIsImportModalOpen(false)}
         onImportRecipes={handleImportRecipes}
+        onShowToast={addToast}
+      />
+
+      {/* Interactive HTML with Embedded Video Sharing Modal */}
+      <ShareInteractiveHtmlModal
+        isOpen={!!shareHtmlRecipe}
+        recipe={shareHtmlRecipe}
+        onClose={() => setShareHtmlRecipe(null)}
         onShowToast={addToast}
       />
     </div>

@@ -25,7 +25,8 @@ import {
   Play,
   Camera,
   ShoppingCart,
-  MessageCircle
+  MessageCircle,
+  FileCode
 } from 'lucide-react';
 import { Recipe, PlatformType } from '../types';
 import { sendViaWhatsApp, generateShoppingListText, transformIngredientsToShoppingList } from '../utils/shoppingList';
@@ -37,6 +38,7 @@ interface Props {
   onOpenEdit: (recipe: Recipe) => void;
   onOpenPhotoModal?: (recipe: Recipe) => void;
   onOpenShoppingList?: (recipe: Recipe) => void;
+  onOpenShareHtml?: (recipe: Recipe) => void;
   onUpdateRecipe: (recipe: Recipe) => void;
   onShowToast: (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => void;
 }
@@ -48,6 +50,7 @@ export const RecipeDetailModal: React.FC<Props> = ({
   onOpenEdit,
   onOpenPhotoModal,
   onOpenShoppingList,
+  onOpenShareHtml,
   onUpdateRecipe,
   onShowToast
 }) => {
@@ -189,6 +192,19 @@ export const RecipeDetailModal: React.FC<Props> = ({
                 ) : <div />}
 
                 <div className="flex items-center gap-2">
+                  {onOpenShareHtml && (
+                    <button
+                      id="btn-share-html-hero"
+                      type="button"
+                      onClick={() => onOpenShareHtml(recipe)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white font-semibold text-xs backdrop-blur-md transition-all border border-amber-400/40 shadow-md active:scale-95"
+                      title="Compartir receta con video en formato HTML interactivo"
+                    >
+                      <FileCode className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Compartir HTML</span>
+                    </button>
+                  )}
+
                   {onOpenPhotoModal && (
                     <button
                       id="btn-edit-photo-hero"
@@ -507,6 +523,19 @@ export const RecipeDetailModal: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onOpenShareHtml && (
+              <button
+                id="btn-share-html-from-detail-footer"
+                type="button"
+                onClick={() => onOpenShareHtml(recipe)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-amber-900 hover:text-amber-950 bg-amber-100/90 hover:bg-amber-200 rounded-xl border border-amber-300 transition-colors"
+                title="Compartir receta con video en formato HTML interactivo"
+              >
+                <FileCode className="w-3.5 h-3.5 text-amber-700" />
+                <span>Compartir HTML</span>
+              </button>
+            )}
+
             {onOpenShoppingList && (
               <button
                 id="btn-open-shopping-modal-from-detail-footer"

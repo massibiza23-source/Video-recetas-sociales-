@@ -17,7 +17,8 @@ import {
   CheckCircle,
   Play,
   Camera,
-  ShoppingCart
+  ShoppingCart,
+  FileCode
 } from 'lucide-react';
 import { Recipe, PlatformType } from '../types';
 
@@ -28,6 +29,7 @@ interface Props {
   onOpenEdit: (recipe: Recipe) => void;
   onOpenPhotoModal?: (recipe: Recipe) => void;
   onOpenShoppingList?: (recipe: Recipe) => void;
+  onOpenShareHtml?: (recipe: Recipe) => void;
   onDelete: (id: string) => void;
   onShowToast: (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => void;
 }
@@ -39,6 +41,7 @@ export const RecipeCard: React.FC<Props> = ({
   onOpenEdit,
   onOpenPhotoModal,
   onOpenShoppingList,
+  onOpenShareHtml,
   onDelete,
   onShowToast
 }) => {
@@ -205,6 +208,21 @@ export const RecipeCard: React.FC<Props> = ({
                   >
                     <ShoppingCart className="w-3.5 h-3.5 text-amber-600" />
                     <span>Lista de compras</span>
+                  </button>
+                )}
+
+                {onOpenShareHtml && (
+                  <button
+                    id={`btn-action-share-html-${recipe.id}`}
+                    onClick={() => {
+                      setShowMenu(false);
+                      onOpenShareHtml(recipe);
+                    }}
+                    className="w-full px-3 py-1.5 text-xs text-amber-900 bg-amber-50 hover:bg-amber-100/80 flex items-center gap-2 text-left font-semibold"
+                    title="Compartir receta con video en formato HTML interactivo"
+                  >
+                    <FileCode className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Compartir HTML con video</span>
                   </button>
                 )}
 

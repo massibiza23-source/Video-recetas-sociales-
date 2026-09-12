@@ -26,7 +26,8 @@ import {
   Play,
   RotateCcw,
   Camera,
-  ShoppingCart
+  ShoppingCart,
+  FileCode
 } from 'lucide-react';
 import { Recipe, RecipeStep, Ingredient } from '../types';
 import { getVideoEmbedInfo, VideoEmbedInfo } from '../utils/videoUtils';
@@ -38,6 +39,7 @@ interface Props {
   onOpenEdit?: (recipe: Recipe) => void;
   onOpenPhotoModal?: (recipe: Recipe) => void;
   onOpenShoppingList?: (recipe: Recipe) => void;
+  onOpenShareHtml?: (recipe: Recipe) => void;
   onUpdateRecipe?: (recipe: Recipe) => void;
   onShowToast: (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => void;
 }
@@ -51,6 +53,7 @@ export const RecipeVideoModal: React.FC<Props> = ({
   onOpenEdit,
   onOpenPhotoModal,
   onOpenShoppingList,
+  onOpenShareHtml,
   onUpdateRecipe,
   onShowToast
 }) => {
@@ -232,6 +235,19 @@ export const RecipeVideoModal: React.FC<Props> = ({
 
         {/* Right Header Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {onOpenShareHtml && (
+            <button
+              id="btn-share-html-from-video-player"
+              type="button"
+              onClick={() => onOpenShareHtml(recipe)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 rounded-xl transition-colors shadow-xs"
+              title="Compartir receta con video en formato HTML interactivo"
+            >
+              <FileCode className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Compartir HTML</span>
+            </button>
+          )}
+
           {onOpenPhotoModal && (
             <button
               id="btn-edit-photo-from-video-player"
