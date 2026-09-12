@@ -1,10 +1,5 @@
 import { Recipe, PlatformType, RecipeCategory, Ingredient, RecipeStep } from '../types';
-
-function extractYouTubeId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/);
-  return match ? match[1] : null;
-}
+import { extractYouTubeId } from './videoUtils';
 
 function detectPlatform(url: string): PlatformType {
   const lower = url.toLowerCase();

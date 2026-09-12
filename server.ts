@@ -36,7 +36,28 @@ function detectPlatform(urlStr: string): 'youtube' | 'instagram' | 'facebook' | 
 // Helper: Extract YouTube video ID
 function extractYouTubeId(urlStr: string): string | null {
   if (!urlStr) return null;
-  const match = urlStr.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|watch\?v=|live\/)([a-zA-Z0-9_-]{11})/i);
+  const trimmed = urlStr.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+
+  try {
+    const parsed = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+    if (parsed.searchParams.has('v')) {
+      const v = parsed.searchParams.get('v');
+      if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+    }
+    const pathParts = parsed.pathname.split('/').filter(Boolean);
+    const shortIdx = pathParts.findIndex(p => ['shorts', 'embed', 'v', 'live'].includes(p.toLowerCase()));
+    if (shortIdx !== -1 && pathParts[shortIdx + 1] && /^[a-zA-Z0-9_-]{11}$/.test(pathParts[shortIdx + 1])) {
+      return pathParts[shortIdx + 1];
+    }
+    if (parsed.hostname.toLowerCase().includes('youtu.be') && pathParts[0] && /^[a-zA-Z0-9_-]{11}$/.test(pathParts[0])) {
+      return pathParts[0];
+    }
+  } catch {
+    // fallback to regex below
+  }
+
+  const match = trimmed.match(/(?:v=|v%3D|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|watch\?v=|live\/)([a-zA-Z0-9_-]{11})/i);
   return match ? match[1] : null;
 }
 
@@ -843,14 +864,18 @@ app.post(["/api/extract-recipe", "/extract-recipe"], async (req, res) => {
         // Fetch transcript for precise recipe extraction
         try {
           const { YoutubeTranscript } = await import('youtube-transcript');
-          const transcriptPromise = YoutubeTranscript.fetchTranscript(url);
+          // Pass the 11-char ytId directly so youtube-transcript avoids regex mismatches on shorts/mobile URLs
+          const transcriptPromise = YoutubeTranscript.fetchTranscript(ytId);
           const transcriptTimeout = new Promise<any[]>((_, reject) => 
             setTimeout(() => reject(new Error('Transcript timeout')), 3500)
           );
           const transcriptList = await Promise.race([transcriptPromise, transcriptTimeout]);
-          ytTranscript = transcriptList.map((t: any) => t.text).join(' ');
-        } catch (err) {
-          console.warn("Could not fetch YouTube transcript:", err);
+          if (Array.isArray(transcriptList) && transcriptList.length > 0) {
+            ytTranscript = transcriptList.map((t: any) => t.text).join(' ');
+          }
+        } catch (err: any) {
+          // Captions may be disabled, not provided, or unavailable for this video; continue smoothly with metadata
+          console.log(`[YouTube] Note: Video transcript not available for ${ytId} (${err?.message || 'disabled/unavailable'}), continuing with description.`);
         }
       }
       

@@ -16,7 +16,28 @@ export interface VideoEmbedInfo {
  */
 export function extractYouTubeId(url: string): string | null {
   if (!url) return null;
-  const match = url.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|watch\?v=)([a-zA-Z0-9_-]{11})/);
+  const trimmed = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+
+  try {
+    const parsed = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+    if (parsed.searchParams.has('v')) {
+      const v = parsed.searchParams.get('v');
+      if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+    }
+    const pathParts = parsed.pathname.split('/').filter(Boolean);
+    const shortIdx = pathParts.findIndex(p => ['shorts', 'embed', 'v', 'live'].includes(p.toLowerCase()));
+    if (shortIdx !== -1 && pathParts[shortIdx + 1] && /^[a-zA-Z0-9_-]{11}$/.test(pathParts[shortIdx + 1])) {
+      return pathParts[shortIdx + 1];
+    }
+    if (parsed.hostname.toLowerCase().includes('youtu.be') && pathParts[0] && /^[a-zA-Z0-9_-]{11}$/.test(pathParts[0])) {
+      return pathParts[0];
+    }
+  } catch {
+    // fallback to regex below
+  }
+
+  const match = trimmed.match(/(?:v=|v%3D|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|watch\?v=|live\/)([a-zA-Z0-9_-]{11})/i);
   return match ? match[1] : null;
 }
 
