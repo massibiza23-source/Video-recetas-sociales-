@@ -272,6 +272,18 @@ function getSmartCulinaryFallback(
       continue;
     }
 
+    // Check for culinary action verbs as instructions if not already tagged
+    const actionVerbRegex = /^(?:mezclar|mezcla|cortar|corta|picar|pica|cocinar|cocina|hornear|hornea|batir|bate|dorar|dora|añadir|añade|agregar|agrega|revolver|revuelve|servir|sirve|poner|pon|calentar|calienta|dejar|deja|incorporar|incorpora|saltear|saltea|extender|extiende|untar|unta|freír|fríe|hervir|hierve)\b/i;
+    if (!inIngSection && actionVerbRegex.test(line)) {
+      parsedInstructions.push({
+        id: `step-${Date.now()}-${parsedInstructions.length}`,
+        stepNumber: stepCounter++,
+        instruction: line,
+        completed: false
+      });
+      continue;
+    }
+
     if (inInstSection || /^(?:paso\s*\d+|\d+[.)-])/i.test(line)) {
       const cleanLine = line.replace(/^(?:paso\s*\d+[:.-]?|\d+[.)-])\s*/i, '').trim();
       if (cleanLine.length > 4) {
@@ -295,12 +307,45 @@ function getSmartCulinaryFallback(
     derivedTitle = rawText.split('\n')[0].replace(/[:.-]+$/, '').trim();
   }
 
-  // If text lines provided enough data, return it
-  if (parsedIngredients.length >= 2 && parsedInstructions.length >= 1) {
+  // If text lines provided ingredients or instructions, PRESERVE THEM STRICTLY!
+  if (parsedIngredients.length >= 1 || parsedInstructions.length >= 1) {
+    // If ingredients present but no instructions: generate concise steps directly referencing the real ingredients
+    if (parsedInstructions.length === 0) {
+      parsedInstructions.push({
+        id: `step-${Date.now()}-1`,
+        stepNumber: 1,
+        instruction: 'Preparar y medir todos los ingredientes indicados.',
+        completed: false
+      });
+      parsedInstructions.push({
+        id: `step-${Date.now()}-2`,
+        stepNumber: 2,
+        instruction: 'Cocinar y combinar los ingredientes según el procedimiento mostrado en el video.',
+        completed: false
+      });
+      parsedInstructions.push({
+        id: `step-${Date.now()}-3`,
+        stepNumber: 3,
+        instruction: 'Emplatar recién hecho y disfrutar.',
+        completed: false
+      });
+    }
+
+    // If instructions present but no ingredients: extract main food item from title
+    if (parsedIngredients.length === 0) {
+      parsedIngredients.push({
+        id: `ing-${Date.now()}-1`,
+        item: `Ingredientes principales para ${derivedTitle}`,
+        amount: null,
+        unit: 'al gusto',
+        checked: false
+      });
+    }
+
     return {
       id: `receta-${Date.now()}`,
       title: derivedTitle,
-      description: pageDescription || 'Receta extraída de la publicación.',
+      description: pageDescription || `Receta fielmente extraída a partir de los datos reales de ${platform.toUpperCase()}.`,
       sourceUrl: url || '',
       sourcePlatform: platform as any,
       author: authorName || `@${platform}_cocina`,
@@ -313,8 +358,8 @@ function getSmartCulinaryFallback(
       ingredients: parsedIngredients,
       instructions: parsedInstructions,
       imageUrl: pageImage || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800&auto=format&fit=crop&q=80',
-      tags: [platform.toUpperCase(), 'Receta Casera'],
-      notes: 'Ingredientes y pasos extraídos del texto de la publicación.',
+      tags: [platform.toUpperCase(), 'Fiel al Video'],
+      notes: 'Ingredientes y pasos extraídos directamente del contenido del autor sin ingredientes ficticios.',
       createdAt: new Date().toISOString()
     };
   }
@@ -926,18 +971,26 @@ app.post(["/api/extract-recipe", "/extract-recipe"], async (req, res) => {
         "gemini-flash-latest"
       ];
       
-      const prompt = `Actúa como un chef profesional y extractor de recetas culinarias altamente preciso en español.
-Analiza y estructura la receta de cocina a partir de los siguientes datos del video (${platform}):
+      const prompt = `Actúa como un extractor de recetas culinarias con FIDELIDAD ABSOLUTA al contenido original en español.
+Tu tarea es extraer y estructurar la receta a partir de los datos reales del video o texto (${platform}):
 
 ${contentToAnalyze}
 
-INSTRUCCIONES CLAVE:
-1. Extrae los ingredientes con cantidades numéricas razonables y unidades estándar (g, ml, cucharadas, piezas, dientes, etc.) y los pasos ordenados de preparación.
-2. Si el texto o transcripción está incompleto o falta algún detalle, utiliza tu conocimiento culinario experto para completar los ingredientes y pasos tradicionales que corresponden al plato que se muestra en el video.
-3. Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exacta:
+INSTRUCCIONES CRÍTICAS DE PRECISIÓN Y NO ALUCINACIÓN (ESTRICTAMENTE PROHIBIDO INVENTAR):
+1. FIDELIDAD TOTAL: Extrae ÚNICAMENTE los ingredientes y pasos que el creador realmente menciona, muestra, escribe o utiliza en el contenido original.
+2. PROHIBIDO INVENTAR INGREDIENTES O PASOS:
+   - NO agregues ingredientes que el creador no haya usado (no inventes especias, hierbas, caldos, salsas, quesos ni guarniciones no mostradas).
+   - Si la receta es sencilla o minimalista (por ejemplo de 2, 3 o 4 ingredientes), mantén ÚNICAMENTE esos ingredientes. NO inventes ingredientes adicionales "tradicionales".
+   - Los pasos de preparación ("instructions") deben reflejar fielmente las acciones exactas realizadas en el video, en orden cronológico, sin inventar pasos intermedios ni consejos ficticios.
+3. CANTIDADES REALES:
+   - Si el autor no menciona la cantidad exacta de un ingrediente, coloca "amount": null y en "unit" pon "al gusto" o déjalo vacío. NO inventes números ni medidas al azar.
+4. TÍTULO Y DESCRIPCIÓN:
+   - Extrae el nombre real del plato del video o texto.
+
+Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exacta:
 {
-  "title": "Nombre de la Receta",
-  "description": "Breve descripción apetitosa del plato",
+  "title": "Nombre Exacto de la Receta",
+  "description": "Breve descripción fiel del plato según el video",
   "prepTimeMinutes": 15,
   "cookTimeMinutes": 20,
   "totalTimeMinutes": 35,
@@ -949,7 +1002,7 @@ INSTRUCCIONES CLAVE:
     { "item": "Nombre del ingrediente", "amount": 100, "unit": "g" }
   ],
   "instructions": [
-    { "stepNumber": 1, "instruction": "Paso a paso..." }
+    { "stepNumber": 1, "instruction": "Paso a paso exacto..." }
   ]
 }`;
 

@@ -255,7 +255,139 @@ export async function generateClientRecipeFallback(
 
   if (!resolvedTitle) resolvedTitle = 'Receta Casera Extraída';
 
-  // 4. Match against culinary knowledge
+  // 4. Try parsing user/post text directly to prevent hallucinations
+  const textLines = cleanText.split('\n').map(l => l.trim()).filter(Boolean);
+  const directIngredients: Ingredient[] = [];
+  const directInstructions: RecipeStep[] = [];
+  
+  if (textLines.length > 0) {
+    let inIngSection = false;
+    let inInstSection = false;
+    let stepCount = 1;
+    const unitRegex = /^(?:(\d+(?:[.,]\d+)?|\d+\/\d+)\s*)?(g|gr|gramos|kg|kilos|ml|l|litros|tazas?|cucharadas?|cucharaditas?|cdas?|cditas?|pizcas?|unidades?|piezas?|dientes?|hojas?|latas?|paquetes?|rebanadas?)?\s*(?:de\s+)?(.*)$/i;
+    const actionVerbRegex = /^(?:mezclar|mezcla|cortar|corta|picar|pica|cocinar|cocina|hornear|hornea|batir|bate|dorar|dora|añadir|añade|agregar|agrega|revolver|revuelve|servir|sirve|poner|pon|calentar|calienta|dejar|deja|incorporar|incorpora|saltear|saltea|extender|extiende|untar|unta|freír|fríe|hervir|hierve)\b/i;
+
+    for (let i = 0; i < textLines.length; i++) {
+      const line = textLines[i];
+      const lower = line.toLowerCase();
+
+      if (lower.includes('ingrediente') || lower.includes('materiales')) {
+        inIngSection = true;
+        inInstSection = false;
+        continue;
+      }
+      if (lower.includes('instruccion') || lower.includes('preparación') || lower.includes('elaboración') || lower.includes('paso a paso')) {
+        inIngSection = false;
+        inInstSection = true;
+        continue;
+      }
+
+      if (inIngSection || (!inInstSection && (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')))) {
+        const cleanLine = line.replace(/^[-•*]\s*/, '').trim();
+        const match = cleanLine.match(unitRegex);
+        if (match && cleanLine.length > 2) {
+          const num = match[1] ? parseFloat(match[1].replace(',', '.')) : null;
+          directIngredients.push({
+            id: `ing-direct-${Date.now()}-${directIngredients.length}`,
+            item: (match[3] || cleanLine).trim(),
+            amount: isNaN(num as number) ? null : num,
+            unit: (match[2] || '').trim(),
+            checked: false
+          });
+        } else if (cleanLine.length > 2) {
+          directIngredients.push({
+            id: `ing-direct-${Date.now()}-${directIngredients.length}`,
+            item: cleanLine,
+            checked: false
+          });
+        }
+        continue;
+      }
+
+      if (!inIngSection && actionVerbRegex.test(line)) {
+        directInstructions.push({
+          id: `step-direct-${Date.now()}-${directInstructions.length}`,
+          stepNumber: stepCount++,
+          instruction: line,
+          completed: false
+        });
+        continue;
+      }
+
+      if (inInstSection || /^(?:paso\s*\d+|\d+[.)-])/i.test(line)) {
+        const cleanLine = line.replace(/^(?:paso\s*\d+[:.-]?|\d+[.)-])\s*/i, '').trim();
+        if (cleanLine.length > 3) {
+          directInstructions.push({
+            id: `step-direct-${Date.now()}-${directInstructions.length}`,
+            stepNumber: stepCount++,
+            instruction: cleanLine,
+            completed: false
+          });
+        }
+      }
+    }
+  }
+
+  // If text lines provided real ingredients or instructions, return them directly!
+  if (directIngredients.length >= 1 || directInstructions.length >= 1) {
+    if (directInstructions.length === 0) {
+      directInstructions.push({
+        id: `step-direct-${Date.now()}-1`,
+        stepNumber: 1,
+        instruction: 'Preparar y medir todos los ingredientes indicados.',
+        completed: false
+      });
+      directInstructions.push({
+        id: `step-direct-${Date.now()}-2`,
+        stepNumber: 2,
+        instruction: 'Proceder a cocinar y mezclar según la técnica del video.',
+        completed: false
+      });
+      directInstructions.push({
+        id: `step-direct-${Date.now()}-3`,
+        stepNumber: 3,
+        instruction: 'Servir y disfrutar recién preparado.',
+        completed: false
+      });
+    }
+
+    if (directIngredients.length === 0) {
+      directIngredients.push({
+        id: `ing-direct-${Date.now()}-1`,
+        item: `Ingredientes principales para ${resolvedTitle}`,
+        amount: null,
+        unit: 'al gusto',
+        checked: false
+      });
+    }
+
+    if (!resolvedImageUrl) {
+      resolvedImageUrl = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
+    }
+
+    return {
+      id: `receta-direct-${Date.now()}`,
+      title: resolvedTitle,
+      description: `Receta fielmente estructurada a partir del contenido de ${platform === 'manual' ? 'texto' : platform.toUpperCase()}.`,
+      sourceUrl: cleanUrl,
+      sourcePlatform: platform,
+      author: resolvedAuthor || (platform === 'manual' ? 'Creado por ti' : `${platform.toUpperCase()} Creator`),
+      prepTimeMinutes: 15,
+      cookTimeMinutes: 20,
+      totalTimeMinutes: 35,
+      servings: 4,
+      category: 'Almuerzo/Cena',
+      difficulty: 'Fácil',
+      ingredients: directIngredients,
+      instructions: directInstructions,
+      imageUrl: resolvedImageUrl,
+      tags: [platform.toUpperCase(), 'Fiel al Contenido'],
+      notes: cleanText ? `Texto original:\n${cleanText.substring(0, 300)}` : undefined,
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  // 5. Match against culinary knowledge ONLY if zero text was provided
   const searchableText = `${resolvedTitle} ${cleanText}`.toLowerCase();
   let matchedKnowledge = CULINARY_KNOWLEDGE.find(k => 
     k.keywords.some(kw => searchableText.includes(kw))

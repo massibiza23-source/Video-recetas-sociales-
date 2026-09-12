@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, 
   Link2, 
@@ -14,7 +14,8 @@ import {
   ArrowRight,
   Clipboard,
   Smartphone,
-  UploadCloud
+  UploadCloud,
+  X
 } from 'lucide-react';
 import { PlatformType, Recipe } from '../types';
 import { MobileVideoUploader } from './MobileVideoUploader';
@@ -41,6 +42,31 @@ export const UrlExtractorBar: React.FC<Props> = ({
   const [showRawTextInput, setShowRawTextInput] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('Iniciando extracción...');
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isCancelledRef = useRef<boolean>(false);
+
+  const handleCancelExtraction = () => {
+    isCancelledRef.current = true;
+    if (abortControllerRef.current) {
+      try {
+        abortControllerRef.current.abort();
+      } catch {
+        // ignore
+      }
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setLoadingStep('');
+    onShowToast('info', 'Extracción cancelada', 'Se detuvo el procesamiento de la receta.');
+  };
+
+  const handleClearUrl = () => {
+    setUrl('');
+  };
+
+  const handleClearRawText = () => {
+    setRawText('');
+  };
 
   // If a shared URL was passed via PWA Web Share Target
   useEffect(() => {
@@ -109,19 +135,26 @@ export const UrlExtractorBar: React.FC<Props> = ({
 
     setIsLoading(true);
     setLoadingStep('Conectando con la fuente...');
+    isCancelledRef.current = false;
+    abortControllerRef.current = new AbortController();
 
     const stepTimer1 = setTimeout(() => {
-      setLoadingStep('Analizando ingredientes y medidas...');
+      if (!isCancelledRef.current) {
+        setLoadingStep('Analizando ingredientes y medidas...');
+      }
     }, 1000);
 
     const stepTimer2 = setTimeout(() => {
-      setLoadingStep('Estructurando pasos cronológicos...');
+      if (!isCancelledRef.current) {
+        setLoadingStep('Estructurando pasos cronológicos...');
+      }
     }, 2200);
 
     try {
       const response = await fetch('/api/extract-recipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortControllerRef.current.signal,
         body: JSON.stringify({
           url: cleanUrl || undefined,
           rawText: cleanText || undefined,
@@ -132,6 +165,8 @@ export const UrlExtractorBar: React.FC<Props> = ({
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
 
+      if (isCancelledRef.current) return;
+
       let data: any = null;
       let rawResponseText = "";
       try {
@@ -141,6 +176,8 @@ export const UrlExtractorBar: React.FC<Props> = ({
         // Handle Vercel 500 / FUNCTION_INVOCATION_FAILED / HTML pages by falling back to client engine
         console.warn("API response was not JSON, falling back to client-side culinary engine:", rawResponseText.substring(0, 120));
       }
+
+      if (isCancelledRef.current) return;
 
       if (data?.isProtected && !data.recipe) {
         onShowToast(
@@ -153,9 +190,11 @@ export const UrlExtractorBar: React.FC<Props> = ({
       }
 
       if (!response.ok || !data?.success || !data?.recipe) {
+        if (isCancelledRef.current) return;
         // Server or Vercel failed: use client-side recovery engine
         setLoadingStep('Estructurando receta con motor de respaldo inteligente...');
         const recoveredRecipe = await generateClientRecipeFallback(cleanUrl, cleanText);
+        if (isCancelledRef.current) return;
         const ingCount = recoveredRecipe.ingredients?.length || 0;
         const stepCount = recoveredRecipe.instructions?.length || 0;
         onRecipeExtracted(recoveredRecipe);
@@ -169,6 +208,8 @@ export const UrlExtractorBar: React.FC<Props> = ({
         );
         return;
       }
+
+      if (isCancelledRef.current) return;
 
       const ingCount = data.recipe.ingredients?.length || 0;
       const stepCount = data.recipe.instructions?.length || 0;
@@ -186,10 +227,17 @@ export const UrlExtractorBar: React.FC<Props> = ({
     } catch (err: any) {
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
+      
+      if (isCancelledRef.current || err?.name === 'AbortError') {
+        // User cancelled extraction, quietly return
+        return;
+      }
+
       console.warn("Extraction encountered an error, activating client fallback:", err);
       try {
         setLoadingStep('Estructurando receta con motor culinario...');
         const recoveredRecipe = await generateClientRecipeFallback(cleanUrl, cleanText);
+        if (isCancelledRef.current) return;
         const ingCount = recoveredRecipe.ingredients?.length || 0;
         const stepCount = recoveredRecipe.instructions?.length || 0;
         onRecipeExtracted(recoveredRecipe);
@@ -202,15 +250,20 @@ export const UrlExtractorBar: React.FC<Props> = ({
           `"${recoveredRecipe.title}" (${ingCount} ingredientes, ${stepCount} pasos).`
         );
       } catch (clientErr: any) {
-        onShowToast(
-          'error', 
-          'Error de extracción', 
-          err.message || 'Ocurrió un error al procesar la receta.'
-        );
+        if (!isCancelledRef.current) {
+          onShowToast(
+            'error', 
+            'Error de extracción', 
+            err.message || 'Ocurrió un error al procesar la receta.'
+          );
+        }
       }
     } finally {
-      setIsLoading(false);
-      setLoadingStep('Iniciando extracción...');
+      if (!isCancelledRef.current) {
+        setIsLoading(false);
+        setLoadingStep('Iniciando extracción...');
+      }
+      abortControllerRef.current = null;
     }
   };
 
@@ -322,48 +375,90 @@ export const UrlExtractorBar: React.FC<Props> = ({
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Pega enlace de YouTube, Instagram, TikTok o escribe el nombre del plato..."
               disabled={isLoading}
-              className="w-full pl-11 pr-24 py-3 sm:py-3.5 text-sm sm:text-base bg-stone-50 hover:bg-white focus:bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors shadow-inner"
+              className="w-full pl-11 pr-32 py-3 sm:py-3.5 text-sm sm:text-base bg-stone-50 hover:bg-white focus:bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors shadow-inner"
             />
 
-            {/* Quick paste button inside input */}
-            <button
-              type="button"
-              id="btn-paste-clipboard"
-              onClick={handlePasteFromClipboard}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-200/70 hover:bg-stone-200 rounded-md transition-colors flex items-center gap-1"
-              title="Pegar desde el portapapeles"
-            >
-              <Clipboard className="w-3.5 h-3.5" />
-              <span>Pegar</span>
-            </button>
+            {/* Quick action buttons inside input */}
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {url && !isLoading && (
+                <button
+                  type="button"
+                  id="btn-clear-url"
+                  onClick={handleClearUrl}
+                  className="p-1 text-stone-400 hover:text-stone-700 rounded-md hover:bg-stone-200/60 transition-colors"
+                  title="Borrar enlace o plato"
+                  aria-label="Borrar texto"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                id="btn-paste-clipboard"
+                onClick={handlePasteFromClipboard}
+                disabled={isLoading}
+                className="px-2.5 py-1 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-200/70 hover:bg-stone-200 rounded-md transition-colors flex items-center gap-1"
+                title="Pegar desde el portapapeles"
+              >
+                <Clipboard className="w-3.5 h-3.5" />
+                <span>Pegar</span>
+              </button>
+            </div>
           </div>
 
-          <button
-            id="btn-submit-extraction"
-            type="submit"
-            disabled={isLoading}
-            className="sm:w-auto px-6 py-3.5 font-semibold text-white bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:bg-amber-400 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer shrink-0"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Extrayendo...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Extraer Receta</span>
-                <ArrowRight className="w-4 h-4 hidden sm:inline" />
-              </>
+          <div className="flex items-center gap-2">
+            <button
+              id="btn-submit-extraction"
+              type="submit"
+              disabled={isLoading}
+              className="flex-1 sm:flex-none px-6 py-3.5 font-semibold text-white bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:bg-amber-400 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer shrink-0"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Extrayendo...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>Extraer Receta</span>
+                  <ArrowRight className="w-4 h-4 hidden sm:inline" />
+                </>
+              )}
+            </button>
+
+            {isLoading && (
+              <button
+                id="btn-cancel-extraction-btn"
+                type="button"
+                onClick={handleCancelExtraction}
+                className="px-4 py-3.5 font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors flex items-center gap-1.5 text-sm sm:text-base cursor-pointer shrink-0"
+                title="Cancelar extracción de receta"
+              >
+                <X className="w-4 h-4" />
+                <span>Cancelar</span>
+              </button>
             )}
-          </button>
+          </div>
         </div>
 
-        {/* Loading Progress Feedback */}
+        {/* Loading Progress Feedback with Cancel Button */}
         {isLoading && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-center flex items-center justify-center gap-2.5 text-xs sm:text-sm text-amber-900 animate-pulse">
-            <Loader2 className="w-4 h-4 animate-spin text-amber-700" />
-            <span className="font-medium">{loadingStep}</span>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900 animate-in fade-in">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Loader2 className="w-4 h-4 animate-spin text-amber-700 shrink-0" />
+              <span className="font-medium truncate">{loadingStep}</span>
+            </div>
+            <button
+              id="btn-cancel-extraction-banner"
+              type="button"
+              onClick={handleCancelExtraction}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-rose-200 font-bold text-xs shadow-2xs transition-colors shrink-0 cursor-pointer"
+              title="Cancelar extracción"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Cancelar extracción</span>
+            </button>
           </div>
         )}
 
@@ -382,9 +477,21 @@ export const UrlExtractorBar: React.FC<Props> = ({
 
           {showRawTextInput && (
             <div className="mt-2 p-3 bg-stone-50 border border-stone-200 rounded-xl space-y-2 animate-in fade-in">
-              <label htmlFor="textarea-recipe-raw" className="block text-xs font-semibold text-stone-700">
-                Pega la descripción, subtítulos o ingredientes de la publicación:
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="textarea-recipe-raw" className="block text-xs font-semibold text-stone-700">
+                  Pega la descripción, subtítulos o ingredientes de la publicación:
+                </label>
+                {rawText && (
+                  <button
+                    type="button"
+                    onClick={handleClearRawText}
+                    className="text-[11px] text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Borrar texto</span>
+                  </button>
+                )}
+              </div>
               <textarea
                 id="textarea-recipe-raw"
                 rows={3}

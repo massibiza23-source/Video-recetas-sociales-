@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Recetas Social",
+  "name": "Videos Recetas Social",
   "short_name": "Recetas",
-  "description": "Extrae y organiza recetas automáticamente desde videos de YouTube, Instagram, Facebook, TikTok o de tu móvil.",
+  "description": "Extrae y organiza recetas automáticamente desde videos de YouTube, Instagram, Facebook y la web con IA.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

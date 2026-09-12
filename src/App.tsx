@@ -468,6 +468,7 @@ export default function App() {
           onOpenShoppingList={setShoppingListRecipe}
           onOpenShareHtml={setShareHtmlRecipe}
           onUpdateRecipe={handleSaveRecipe}
+          onDelete={handleDeleteRecipe}
           onShowToast={addToast}
         />
       )}

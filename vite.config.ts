@@ -76,15 +76,54 @@ export default defineConfig(() => {
         includeAssets: [
           'icon.svg',
           'apple-touch-icon.png',
+          'apple-touch-icon-precomposed.png',
           'favicon-32x32.png',
+          'favicon.ico',
           'pwa-192x192.png',
           'pwa-512x512.png',
           'pwa-maskable-512x512.png',
           'shortcut-add.png',
-          'shortcut-shopping.png',
-          'manifest.json'
+          'shortcut-shopping.png'
         ],
-        manifest: false,
+        manifest: {
+          id: '/',
+          name: 'Videos Recetas Social',
+          short_name: 'Recetas',
+          description: 'Extrae y organiza recetas automáticamente desde videos de YouTube, Instagram, Facebook y la web con IA.',
+          start_url: '/',
+          scope: '/',
+          display: 'standalone',
+          orientation: 'portrait-primary',
+          theme_color: '#f59e0b',
+          background_color: '#fafaf9',
+          categories: ['food', 'lifestyle', 'utilities'],
+          icons: [
+            {
+              src: '/pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: '/pwa-maskable-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
+            },
+            {
+              src: '/apple-touch-icon.png',
+              sizes: '180x180',
+              type: 'image/png',
+              purpose: 'any'
+            }
+          ]
+        },
         devOptions: {
           enabled: true
         }

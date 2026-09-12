@@ -26,7 +26,8 @@ import {
   Camera,
   ShoppingCart,
   MessageCircle,
-  FileCode
+  FileCode,
+  Trash2
 } from 'lucide-react';
 import { Recipe, PlatformType } from '../types';
 import { sendViaWhatsApp, generateShoppingListText, transformIngredientsToShoppingList } from '../utils/shoppingList';
@@ -40,6 +41,7 @@ interface Props {
   onOpenShoppingList?: (recipe: Recipe) => void;
   onOpenShareHtml?: (recipe: Recipe) => void;
   onUpdateRecipe: (recipe: Recipe) => void;
+  onDelete?: (recipeId: string) => void;
   onShowToast: (type: 'success' | 'error' | 'warning' | 'info', title: string, message?: string) => void;
 }
 
@@ -52,12 +54,14 @@ export const RecipeDetailModal: React.FC<Props> = ({
   onOpenShoppingList,
   onOpenShareHtml,
   onUpdateRecipe,
+  onDelete,
   onShowToast
 }) => {
   const [currentServings, setCurrentServings] = useState(recipe?.servings || 2);
   const [copiedIngredients, setCopiedIngredients] = useState(false);
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     if (!recipe) return;
@@ -143,15 +147,29 @@ export const RecipeDetailModal: React.FC<Props> = ({
         className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Close Button */}
-        <button
-          id="btn-close-detail-modal"
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-stone-900/60 hover:bg-stone-900 text-white backdrop-blur-md transition-colors"
-          aria-label="Cerrar modal"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Modal Top Actions */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+          {onDelete && (
+            <button
+              id="btn-cancel-recipe-top"
+              type="button"
+              onClick={() => setShowCancelConfirm(true)}
+              className="p-2 rounded-full bg-rose-600/80 hover:bg-rose-700 text-white backdrop-blur-md transition-colors shadow-sm"
+              title="Cancelar y eliminar receta"
+              aria-label="Cancelar y eliminar receta"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
+          <button
+            id="btn-close-detail-modal"
+            onClick={onClose}
+            className="p-2 rounded-full bg-stone-900/60 hover:bg-stone-900 text-white backdrop-blur-md transition-colors"
+            aria-label="Cerrar modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
         {/* Scrollable Container */}
         <div className="overflow-y-auto flex-1 scrollbar-thin">
@@ -574,6 +592,20 @@ export const RecipeDetailModal: React.FC<Props> = ({
               <span>Editar</span>
             </button>
 
+            {onDelete && (
+              <button
+                id="btn-cancel-recipe-footer"
+                type="button"
+                onClick={() => setShowCancelConfirm(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-rose-700 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors"
+                title="Cancelar y eliminar esta receta"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span className="hidden sm:inline">Cancelar receta</span>
+                <span className="sm:hidden">Cancelar</span>
+              </button>
+            )}
+
             <button
               id="btn-finish-cooking"
               onClick={onClose}
@@ -583,6 +615,48 @@ export const RecipeDetailModal: React.FC<Props> = ({
             </button>
           </div>
         </div>
+
+        {/* Cancel / Delete Confirmation Modal */}
+        {showCancelConfirm && (
+          <div 
+            id="cancel-recipe-confirm-dialog"
+            className="absolute inset-0 z-50 bg-stone-950/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          >
+            <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-stone-200 text-center space-y-3 animate-in zoom-in-95">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <h4 className="font-bold text-stone-900 text-base">¿Cancelar y eliminar receta?</h4>
+              <p className="text-xs text-stone-600 leading-relaxed">
+                ¿Estás seguro de que deseas cancelar y eliminar &quot;{recipe.title}&quot;? Esta receta se quitará permanentemente de tu colección.
+              </p>
+              <div className="flex gap-2 justify-center pt-2">
+                <button
+                  type="button"
+                  id="btn-dismiss-cancel-recipe"
+                  onClick={() => setShowCancelConfirm(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 transition-colors"
+                >
+                  No, mantener
+                </button>
+                <button
+                  type="button"
+                  id="btn-confirm-cancel-recipe"
+                  onClick={() => {
+                    setShowCancelConfirm(false);
+                    onClose();
+                    if (onDelete) {
+                      onDelete(recipe.id);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 shadow-xs transition-colors"
+                >
+                  Sí, eliminar receta
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

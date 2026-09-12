@@ -259,7 +259,7 @@ export const RecipeCard: React.FC<Props> = ({
                   className="w-full px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 text-left font-medium"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span>Eliminar</span>
+                  <span>Cancelar / Eliminar receta</span>
                 </button>
               </div>
             )}
