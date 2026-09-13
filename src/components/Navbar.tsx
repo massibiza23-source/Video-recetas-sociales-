@@ -6,7 +6,6 @@ interface Props {
   onOpenManualModal: () => void;
   onExportJson: () => void;
   onOpenImportModal?: () => void;
-  onResetSamples: () => void;
   onOpenMobileConnectModal?: () => void;
   onOpenInstallModal?: () => void;
 }
@@ -16,7 +15,6 @@ export const Navbar: React.FC<Props> = ({
   onOpenManualModal,
   onExportJson,
   onOpenImportModal,
-  onResetSamples,
   onOpenMobileConnectModal,
   onOpenInstallModal
 }) => {
@@ -33,98 +31,51 @@ export const Navbar: React.FC<Props> = ({
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-stone-900 font-serif">
                 Recetas Social
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                <Sparkles className="w-3 h-3 text-amber-600" />
-                IA Extractor
-              </span>
             </div>
-            <p className="text-xs text-stone-500 hidden sm:block">
-              Organizador de YouTube, Instagram, TikTok y videos de tu móvil
-            </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Install / Add to Home Screen button */}
-          {onOpenInstallModal && (
-            <button
-              id="btn-nav-install-pwa"
-              type="button"
-              onClick={onOpenInstallModal}
-              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:from-amber-700 active:to-orange-700 rounded-xl transition-all flex items-center gap-1.5 shadow-xs shadow-amber-600/20 cursor-pointer group"
-              title="Instalar app en tu móvil u ordenador (solución si no ves los 3 puntos)"
-            >
-              <img
-                src="/pwa-192x192.png"
-                alt="Icono App"
-                className="w-4 h-4 rounded-xs shadow-2xs group-hover:scale-110 transition-transform"
-              />
-              <span className="hidden sm:inline">Instalar App</span>
-              <span className="sm:hidden">Instalar</span>
-            </button>
-          )}
-
-          {/* Mobile phone send button */}
-          {onOpenMobileConnectModal && (
-            <button
-              id="btn-nav-mobile-connect"
-              type="button"
-              onClick={onOpenMobileConnectModal}
-              className="px-3 py-1.5 text-xs font-semibold text-orange-800 bg-orange-50 hover:bg-orange-100 active:bg-orange-200 border border-orange-200 rounded-lg transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
-              title="Abre la app en tu móvil para compartir videos directamente"
-            >
-              <Smartphone className="w-4 h-4 text-orange-600" />
-              <span className="hidden md:inline">Enviar desde Móvil</span>
-              <span className="md:hidden">Móvil</span>
-            </button>
-          )}
-
           {/* Badge counter */}
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 text-stone-700 text-xs font-medium border border-stone-200">
             <span>Recetas:</span>
             <span className="font-bold text-stone-900">{recipeCount}</span>
           </div>
 
-          {onOpenImportModal && (
+          {/* Backup Dropdown / Group */}
+          <div className="flex items-center rounded-md border border-stone-200 bg-white overflow-hidden shadow-2xs">
+            {onOpenImportModal && (
+              <button
+                id="btn-import-recipes"
+                onClick={onOpenImportModal}
+                title="Importar JSON"
+                className="p-1.5 sm:px-2 sm:py-1.5 hover:bg-amber-50 transition-colors flex items-center gap-1"
+              >
+                <Upload className="w-3.5 h-3.5 text-amber-700" />
+                <span className="hidden lg:inline text-[11px] font-semibold text-amber-900">Importar</span>
+              </button>
+            )}
+            <div className="w-px h-3.5 bg-stone-200"></div>
             <button
-              id="btn-import-recipes"
-              onClick={onOpenImportModal}
-              title="Importar copia de seguridad en JSON"
-              className="p-2 sm:px-3 sm:py-2 text-xs font-semibold text-amber-900 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors flex items-center gap-1.5 border border-amber-200 shadow-2xs cursor-pointer"
+              id="btn-export-recipes"
+              onClick={onExportJson}
+              title="Exportar JSON"
+              className="p-1.5 sm:px-2 sm:py-1.5 hover:bg-stone-50 transition-colors flex items-center gap-1"
             >
-              <Upload className="w-4 h-4 text-amber-700" />
-              <span className="hidden sm:inline">Importar</span>
+              <Download className="w-3.5 h-3.5 text-stone-600" />
+              <span className="hidden lg:inline text-[11px] font-medium text-stone-700">Exportar</span>
             </button>
-          )}
-
-          <button
-            id="btn-export-recipes"
-            onClick={onExportJson}
-            title="Exportar copia de seguridad en JSON"
-            className="p-2 sm:px-3 sm:py-2 text-xs font-medium text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors flex items-center gap-1.5 border border-stone-200"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Exportar</span>
-          </button>
-
-          <button
-            id="btn-reset-samples"
-            onClick={onResetSamples}
-            title="Restaurar recetas de ejemplo"
-            className="p-2 sm:px-3 sm:py-2 text-xs font-medium text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 rounded-lg transition-colors flex items-center gap-1 border border-stone-200"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="hidden lg:inline">Ejemplos</span>
-          </button>
+          </div>
 
           <button
             id="btn-open-manual-recipe"
             onClick={onOpenManualModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-semibold text-white bg-amber-600 hover:bg-amber-700 active:bg-amber-800 rounded-lg shadow-sm shadow-amber-600/20 transition-all hover:shadow"
+            className="flex items-center gap-1 px-2 py-1.5 sm:px-2.5 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 active:bg-amber-800 rounded-md shadow-sm shadow-amber-600/20 transition-all hover:shadow"
           >
-            <Plus className="w-4 h-4" />
-            <span>Crear Manual</span>
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Crear Manual</span>
+            <span className="sm:hidden">Crear</span>
           </button>
         </div>
       </div>

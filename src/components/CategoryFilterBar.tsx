@@ -6,8 +6,6 @@ interface Props {
   categories: RecipeCategory[];
   activeCategory: RecipeCategory;
   onSelectCategory: (cat: RecipeCategory) => void;
-  activePlatform: string;
-  onSelectPlatform: (platform: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
   totalVisible: number;
@@ -17,15 +15,13 @@ export const CategoryFilterBar: React.FC<Props> = ({
   categories,
   activeCategory,
   onSelectCategory,
-  activePlatform,
-  onSelectPlatform,
   searchQuery,
   onSearchChange,
   totalVisible
 }) => {
   return (
     <div className="space-y-4" id="category-filter-bar">
-      {/* Search & Platform Filter Row */}
+      {/* Search Row */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Bar */}
         <div className="relative flex-1">
@@ -50,41 +46,10 @@ export const CategoryFilterBar: React.FC<Props> = ({
             </button>
           )}
         </div>
-
-        {/* Platform Filter Buttons */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <span className="text-xs font-medium text-stone-500 mr-1 hidden sm:inline">Origen:</span>
-          {[
-            { id: 'all', label: 'Todos', icon: null },
-            { id: 'youtube', label: 'YouTube', icon: Youtube, color: 'text-red-600' },
-            { id: 'instagram', label: 'Instagram', icon: Instagram, color: 'text-pink-600' },
-            { id: 'facebook', label: 'Facebook', icon: Facebook, color: 'text-blue-600' },
-            { id: 'tiktok', label: 'TikTok', icon: Video, color: 'text-neutral-900' },
-            { id: 'manual', label: 'Manual', icon: PenTool, color: 'text-amber-600' },
-          ].map((item) => {
-            const isActive = activePlatform === item.id;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                id={`btn-filter-platform-${item.id}`}
-                onClick={() => onSelectPlatform(item.id)}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap border ${
-                  isActive
-                    ? 'bg-stone-900 text-white border-stone-900 shadow-xs'
-                    : 'bg-white text-stone-600 border-stone-200 hover:bg-stone-100'
-                }`}
-              >
-                {Icon && <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : item.color}`} />}
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Category Pills */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-stone-200">
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2 scrollbar-none">
         <div className="flex items-center gap-1.5">
           {categories.map((cat) => {
             const isActive = activeCategory === cat;

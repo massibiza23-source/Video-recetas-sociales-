@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Recipe, RecipeCategory, ToastMessage } from './types';
-import { initialRecipes } from './data/sampleRecipes';
 import { Navbar } from './components/Navbar';
 import { UrlExtractorBar } from './components/UrlExtractorBar';
 import { CategoryFilterBar } from './components/CategoryFilterBar';
@@ -42,7 +41,7 @@ export default function App() {
     } catch (e) {
       console.error('Error loading saved recipes from localStorage:', e);
     }
-    return initialRecipes;
+    return [];
   });
 
   // Mobile connect modal & share target
@@ -95,7 +94,6 @@ export default function App() {
 
   // 2. Filters & Search State
   const [activeCategory, setActiveCategory] = useState<RecipeCategory>('Todas');
-  const [activePlatform, setActivePlatform] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   // 3. Modals State
@@ -194,11 +192,6 @@ export default function App() {
     setIsEditModalOpen(true);
   };
 
-  const handleResetSamples = () => {
-    setRecipes(initialRecipes);
-    addToast('info', 'Ejemplos restaurados', 'Se cargaron recetas de YouTube, Instagram y Facebook.');
-  };
-
   const handleExportJson = () => {
     try {
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(recipes, null, 2));
@@ -269,12 +262,7 @@ export default function App() {
         if (recipe.category !== activeCategory) return false;
       }
 
-      // 2. Platform filter
-      if (activePlatform !== 'all') {
-        if (recipe.sourcePlatform !== activePlatform) return false;
-      }
-
-      // 3. Search query
+      // 2. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = recipe.title.toLowerCase().includes(q);
@@ -290,15 +278,12 @@ export default function App() {
 
       return true;
     });
-  }, [recipes, activeCategory, activePlatform, searchQuery]);
+  }, [recipes, activeCategory, searchQuery]);
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 flex flex-col selection:bg-amber-100 selection:text-amber-900">
       {/* Toast Notification Container */}
       <NotificationToast toasts={toasts} onDismiss={removeToast} />
-
-      {/* PWA Install Banner */}
-      <InstallBanner onOpenInstallModal={() => setIsInstallModalOpen(true)} />
 
       {/* Top Navbar */}
       <Navbar
@@ -306,10 +291,22 @@ export default function App() {
         onOpenManualModal={handleOpenManualModal}
         onExportJson={handleExportJson}
         onOpenImportModal={() => setIsImportModalOpen(true)}
-        onResetSamples={handleResetSamples}
         onOpenMobileConnectModal={() => setIsMobileModalOpen(true)}
-        onOpenInstallModal={() => setIsInstallModalOpen(true)}
       />
+
+      {/* Filter Bar (Moved just below Navbar) */}
+      <div className="bg-white border-b border-stone-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <CategoryFilterBar
+            categories={CATEGORIES}
+            activeCategory={activeCategory}
+            onSelectCategory={setActiveCategory}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            totalVisible={filteredRecipes.length}
+          />
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
@@ -335,18 +332,6 @@ export default function App() {
               </p>
             </div>
           </div>
-
-          {/* Filter Bar */}
-          <CategoryFilterBar
-            categories={CATEGORIES}
-            activeCategory={activeCategory}
-            onSelectCategory={setActiveCategory}
-            activePlatform={activePlatform}
-            onSelectPlatform={setActivePlatform}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            totalVisible={filteredRecipes.length}
-          />
 
           {/* Recipe Grid */}
           {filteredRecipes.length > 0 ? (
@@ -384,19 +369,18 @@ export default function App() {
                   No se encontraron recetas
                 </h3>
                 <p className="text-xs text-stone-500 mt-1">
-                  {searchQuery || activeCategory !== 'Todas' || activePlatform !== 'all'
+                  {searchQuery || activeCategory !== 'Todas'
                     ? 'Intenta ajustar los filtros de búsqueda o categoría.'
                     : 'Pega un enlace de Instagram, YouTube o Facebook en el extractor superior.'}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-                {(searchQuery || activeCategory !== 'Todas' || activePlatform !== 'all') && (
+                {(searchQuery || activeCategory !== 'Todas') && (
                   <button
                     id="btn-reset-filters"
                     onClick={() => {
                       setActiveCategory('Todas');
-                      setActivePlatform('all');
                       setSearchQuery('');
                     }}
                     className="px-3.5 py-1.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors"

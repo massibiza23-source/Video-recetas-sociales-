@@ -1003,13 +1003,14 @@ ${contentToAnalyze}
 
 INSTRUCCIONES CRÍTICAS DE PRECISIÓN Y NO ALUCINACIÓN (ESTRICTAMENTE PROHIBIDO INVENTAR):
 1. FIDELIDAD TOTAL: Extrae ÚNICAMENTE los ingredientes y pasos que el creador realmente menciona, muestra, escribe o utiliza en el contenido original.
-2. PROHIBIDO INVENTAR INGREDIENTES O PASOS:
+2. DATOS INSUFICIENTES: Si el texto provisto consiste únicamente en una URL y un título, y NO contiene detalles de ingredientes o pasos (porque no se pudo extraer la transcripción), NO INVENTES LA RECETA. En su lugar, devuelve la lista de "ingredients" completamente vacía, y en "instructions" pon un único paso que diga: "No se pudo extraer la información del video automáticamente. Por favor, edita e ingresa los pasos a mano."
+3. PROHIBIDO INVENTAR INGREDIENTES O PASOS:
    - NO agregues ingredientes que el creador no haya usado (no inventes especias, hierbas, caldos, salsas, quesos ni guarniciones no mostradas).
    - Si la receta es sencilla o minimalista (por ejemplo de 2, 3 o 4 ingredientes), mantén ÚNICAMENTE esos ingredientes. NO inventes ingredientes adicionales "tradicionales".
    - Los pasos de preparación ("instructions") deben reflejar fielmente las acciones exactas realizadas en el video, en orden cronológico, sin inventar pasos intermedios ni consejos ficticios.
-3. CANTIDADES REALES:
+4. CANTIDADES REALES:
    - Si el autor no menciona la cantidad exacta de un ingrediente, coloca "amount": null y en "unit" pon "al gusto" o déjalo vacío. NO inventes números ni medidas al azar.
-4. TÍTULO Y DESCRIPCIÓN:
+5. TÍTULO Y DESCRIPCIÓN:
    - Extrae el nombre real del plato del video o texto.
 
 Devuelve EXCLUSIVAMENTE un objeto JSON válido con la siguiente estructura exacta:
