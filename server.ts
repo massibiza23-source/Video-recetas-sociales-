@@ -385,391 +385,29 @@ function getSmartCulinaryFallback(
     };
   }
 
-  // 2. Dish recognition database for popular recipes
-  const searchCorpus = `${pageTitle} ${rawText} ${pageDescription} ${url}`.toLowerCase();
-
-  interface PresetRecipe {
-    title: string;
-    description: string;
-    category: string;
-    difficulty: string;
-    prepTime: number;
-    cookTime: number;
-    servings: number;
-    image: string;
-    tags: string[];
-    ingredients: Array<{ item: string; amount?: number; unit?: string }>;
-    instructions: string[];
-  }
-
-  const recipeDatabase: Record<string, PresetRecipe> = {
-    taco: {
-      title: 'Tacos al Pastor Caseros Tradicionales',
-      description: 'Deliciosos tacos de cerdo adobados con chiles secos, especias y piña asada, servidos en tortillas de maíz con cilantro y cebolla.',
-      category: 'Almuerzo/Cena',
-      difficulty: 'Media',
-      prepTime: 25,
-      cookTime: 30,
-      servings: 4,
-      image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=800&auto=format&fit=crop&q=80',
-      tags: ['Tacos', 'Mexicana', 'Carne'],
-      ingredients: [
-        { item: 'Carne de cerdo (lomo o cabeza de lomo en filetes finos)', amount: 600, unit: 'g' },
-        { item: 'Chiles guajillo desvenados', amount: 3, unit: 'piezas' },
-        { item: 'Chile ancho desvenado', amount: 1, unit: 'pieza' },
-        { item: 'Pasta de achiote', amount: 50, unit: 'g' },
-        { item: 'Jugo de naranja o piña', amount: 100, unit: 'ml' },
-        { item: 'Dientes de ajo', amount: 2, unit: 'dientes' },
-        { item: 'Orégano seco y comino molido', amount: 1, unit: 'cucharadita' },
-        { item: 'Piña natural cortada en rodajas', amount: 200, unit: 'g' },
-        { item: 'Tortillas de maíz calientes', amount: 12, unit: 'piezas' },
-        { item: 'Cebolla blanca y cilantro fresco picados', amount: 1, unit: 'taza' },
-        { item: 'Limones cortados en cuartos', amount: 2, unit: 'piezas' }
-      ],
-      instructions: [
-        'Hidratar los chiles secos en agua caliente durante 10 minutos hasta que estén suaves.',
-        'Licuar los chiles hidratados con el achiote, jugo, ajo, orégano, comino, sal y pimienta hasta obtener un adobo suave.',
-        'Untar la carne con el adobo y dejar marinar al menos 30 minutos (idealmente un par de horas en refrigeración).',
-        'Cocinar la carne en una sartén o plancha muy caliente con unas gotas de aceite hasta dorar bien por ambos lados.',
-        'En la misma plancha o sartén, asar las rebanadas de piña hasta que tomen color dorado y caramelizado.',
-        'Picar la carne en trozos pequeños y la piña en cubitos.',
-        'Montar los tacos sobre tortillas de maíz calientes, agregar piña, cebolla, cilantro y unas gotas de limón fresco.'
-      ]
-    },
-    carbonara: {
-      title: 'Espaguetis a la Carbonara Auténtica',
-      description: 'Clásica pasta italiana sin nata, elaborada con yemas frescas de huevo, queso Pecorino Romano, guanciale crujiente y pimienta negra recién molida.',
-      category: 'Almuerzo/Cena',
-      difficulty: 'Media',
-      prepTime: 10,
-      cookTime: 15,
-      servings: 2,
-      image: 'https://images.unsplash.com/photo-1612874742237-6526221588e3?w=800&auto=format&fit=crop&q=80',
-      tags: ['Pasta', 'Italiana', 'Clásico'],
-      ingredients: [
-        { item: 'Espaguetis de sémola de trigo duro', amount: 250, unit: 'g' },
-        { item: 'Guanciale (o panceta curada en dados)', amount: 120, unit: 'g' },
-        { item: 'Yemas de huevo fresco', amount: 3, unit: 'piezas' },
-        { item: 'Huevo entero', amount: 1, unit: 'pieza' },
-        { item: 'Queso Pecorino Romano rallado finamente', amount: 70, unit: 'g' },
-        { item: 'Queso Parmesano Reggiano', amount: 30, unit: 'g' },
-        { item: 'Pimienta negra recién molida', amount: 1, unit: 'cucharada' },
-        { item: 'Sal gruesa para el agua de cocción', amount: 15, unit: 'g' }
-      ],
-      instructions: [
-        'Poner a hervir abundante agua con sal moderada y cocinar los espaguetis al dente según el paquete.',
-        'En una sartén grande sin aceite, dorar el guanciale a fuego medio hasta que esté crujiente y haya soltado su grasa.',
-        'En un bol, batir las 3 yemas y el huevo entero junto con el queso rallado y abundante pimienta negra molida hasta formar una crema densa.',
-        'Retirar la sartén del fuego para que no sobrecaliente.',
-        'Escurrir la pasta reservando una taza del agua de cocción con almidón.',
-        'Añadir la pasta caliente a la sartén con el guanciale, verter la crema de huevo y queso, y mezclar vigorosamente añadiendo un chorrito de agua de cocción para crear una emulsión sedosa y brillante.',
-        'Servir de inmediato con más Pecorino rallado y un toque extra de pimienta negra.'
-      ]
-    },
-    pizza: {
-      title: 'Pizza Casera Crujiente al Horno',
-      description: 'Masa de pizza artesanal con salsa de tomate natural, queso mozzarella fundido, albahaca fresca y un toque de aceite de oliva virgen extra.',
-      category: 'Almuerzo/Cena',
-      difficulty: 'Media',
-      prepTime: 30,
-      cookTime: 15,
-      servings: 3,
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&auto=format&fit=crop&q=80',
-      tags: ['Pizza', 'Horno', 'Italiana'],
-      ingredients: [
-        { item: 'Harina de trigo de fuerza', amount: 400, unit: 'g' },
-        { item: 'Agua tibia', amount: 250, unit: 'ml' },
-        { item: 'Levadura seca de panadería', amount: 5, unit: 'g' },
-        { item: 'Aceite de oliva virgen extra', amount: 2, unit: 'cucharadas' },
-        { item: 'Sal marina fina', amount: 1, unit: 'cucharadita' },
-        { item: 'Salsa de tomate triturado con orégano', amount: 150, unit: 'g' },
-        { item: 'Queso mozzarella rallado o fresco', amount: 250, unit: 'g' },
-        { item: 'Hojas de albahaca fresca', amount: 8, unit: 'hojas' }
-      ],
-      instructions: [
-        'Disolver la levadura en el agua tibia y dejar reposar 5 minutos.',
-        'En un bol amplio, mezclar la harina con la sal, añadir el agua con levadura y el aceite de oliva. Amasar 10 minutos hasta obtener una masa lisa.',
-        'Cubrir con un paño húmedo y dejar levar durante 1 hora en un lugar cálido hasta duplicar su volumen.',
-        'Precalentar el horno al máximo posible (230°C - 250°C) con la bandeja adentro.',
-        'Extender la masa con las manos sobre papel de hornear formando un círculo con los bordes ligeramente más gruesos.',
-        'Repartir la salsa de tomate dejando un margen en los bordes y cubrir con queso mozzarella.',
-        'Hornear durante 12-15 minutos en la parte baja del horno hasta que la base esté crujiente y el queso burbujeante y dorado.',
-        'Terminar con hojas de albahaca fresca y un hilo de aceite de oliva.'
-      ]
-    },
-    guacamole: {
-      title: 'Auténtico Guacamole Mexicano',
-      description: 'Cremoso guacamole fresco con aguacates maduros, tomate, cebolla morada, cilantro, chile serrano y un toque de lima.',
-      category: 'Snack',
-      difficulty: 'Fácil',
-      prepTime: 12,
-      cookTime: 0,
-      servings: 4,
-      image: 'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=800&auto=format&fit=crop&q=80',
-      tags: ['Aperitivo', 'Mexicana', 'Vegano'],
-      ingredients: [
-        { item: 'Aguacates maduros grandes', amount: 3, unit: 'piezas' },
-        { item: 'Cebolla morada finamente picada', amount: 0.5, unit: 'pieza' },
-        { item: 'Tomate maduro sin semillas picado en cubos', amount: 1, unit: 'pieza' },
-        { item: 'Chile jalapeño o serrano sin venas', amount: 1, unit: 'pieza' },
-        { item: 'Cilantro fresco picado', amount: 3, unit: 'cucharadas' },
-        { item: 'Jugo de lima o limón fresco', amount: 2, unit: 'cucharadas' },
-        { item: 'Sal marina gruesa', amount: 1, unit: 'cucharadita' },
-        { item: 'Totopos o nachos de maíz para acompañar', amount: 1, unit: 'paquete' }
-      ],
-      instructions: [
-        'Cortar los aguacates por la mitad, retirar el hueso y vaciar la pulpa en un molcajete o tazón.',
-        'Machacar con un tenedor dejando tropezones rústicos para lograr la mejor textura.',
-        'Añadir inmediatamente el jugo de lima y la sal para realzar el sabor y evitar la oxidación.',
-        'Incorporar la cebolla picada, el tomate, el chile y el cilantro.',
-        'Mezclar suavemente con una cuchara envolvente sin batir en exceso.',
-        'Probar y ajustar el punto de sal o lima si es necesario.',
-        'Servir inmediatamente acompañado de totopos crujientes de maíz.'
-      ]
-    },
-    brownie: {
-      title: 'Brownies de Chocolate Húmedos y Fudgy',
-      description: 'Irresistibles brownies de chocolate puro con costra brillante crujiente y centro denso y chocolatoso.',
-      category: 'Postre',
-      difficulty: 'Fácil',
-      prepTime: 15,
-      cookTime: 25,
-      servings: 8,
-      image: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=800&auto=format&fit=crop&q=80',
-      tags: ['Chocolate', 'Postre', 'Horno'],
-      ingredients: [
-        { item: 'Chocolate negro 70% troceado', amount: 200, unit: 'g' },
-        { item: 'Mantequilla sin sal', amount: 150, unit: 'g' },
-        { item: 'Azúcar blanco', amount: 180, unit: 'g' },
-        { item: 'Azúcar moreno', amount: 50, unit: 'g' },
-        { item: 'Huevos grandes a temperatura ambiente', amount: 3, unit: 'piezas' },
-        { item: 'Harina de trigo todo uso', amount: 90, unit: 'g' },
-        { item: 'Cacao en polvo puro', amount: 30, unit: 'g' },
-        { item: 'Extracto de vainilla', amount: 1, unit: 'cucharadita' },
-        { item: 'Pizca de sal fina', amount: 0.5, unit: 'cucharadita' }
-      ],
-      instructions: [
-        'Precalentar el horno a 175°C y forrar un molde cuadrado con papel de hornear.',
-        'Derretir el chocolate negro junto con la mantequilla a fuego muy bajo o al baño maría hasta que esté suave y brillante.',
-        'En un bol grande, batir los huevos con ambos azúcares y la vainilla durante 3-4 minutos hasta que la mezcla aclare y tome aire.',
-        'Verter el chocolate derretido templado sobre la mezcla de huevos y batir suavemente.',
-        'Tamizar la harina, el cacao en polvo y la pizca de sal, e integrar con una espátula mediante movimientos envolventes sin sobrebatir.',
-        'Verter la masa en el molde y hornear durante 22-25 minutos (el centro debe quedar ligeramente húmedo al clavar un palillo).',
-        'Dejar enfriar completamente antes de cortar en porciones para obtener el corte perfecto.'
-      ]
-    },
-    cheesecake: {
-      title: 'Tarta de Queso Horneada Estilo San Sebastián',
-      description: 'Famosa tarta de queso con superficie tostada caramelizada y un corazón extremadamente cremoso y suave.',
-      category: 'Postre',
-      difficulty: 'Fácil',
-      prepTime: 15,
-      cookTime: 40,
-      servings: 8,
-      image: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=800&auto=format&fit=crop&q=80',
-      tags: ['Postre', 'Queso', 'Horno'],
-      ingredients: [
-        { item: 'Queso crema tipo Philadelphia', amount: 500, unit: 'g' },
-        { item: 'Nata para montar o crema de leche (mín 35% grasa)', amount: 250, unit: 'ml' },
-        { item: 'Huevos grandes a temperatura ambiente', amount: 4, unit: 'piezas' },
-        { item: 'Azúcar blanco', amount: 160, unit: 'g' },
-        { item: 'Harina de trigo o maicena', amount: 1, unit: 'cucharada' },
-        { item: 'Extracto de vainilla natural', amount: 1, unit: 'cucharadita' },
-        { item: 'Pizca de sal', amount: 1, unit: 'pizca' }
-      ],
-      instructions: [
-        'Precalentar el horno a 210°C (calor arriba y abajo).',
-        'Humedecer una hoja grande de papel de hornear, arrugarla bien y forrar un molde desmontable de 20-22 cm.',
-        'En un bol amplio, batir el queso crema con el azúcar hasta que quede suave y sin grumos.',
-        'Añadir los huevos uno a uno, integrando con varillas sin batir en exceso.',
-        'Incorporar la nata líquida, la vainilla, la pizca de sal y la cucharada de harina tamizada, mezclando hasta homogeneizar.',
-        'Verter la crema en el molde y hornear durante 35-42 minutos hasta que la superficie esté dorada oscura y el centro aún tiemble como un flan.',
-        'Dejar templar dentro del horno apagado con la puerta entreabierta y luego enfriar a temperatura ambiente antes de desmoldar.'
-      ]
-    },
-    pollo: {
-      title: 'Pollo Dorado con Hierbas y Verduras',
-      description: 'Jugoso pollo marinado con ajo, limón, romero y aceite de oliva virgen extra, cocinado hasta lograr una piel crujiente y tierna.',
-      category: 'Almuerzo/Cena',
-      difficulty: 'Fácil',
-      prepTime: 15,
-      cookTime: 25,
-      servings: 4,
-      image: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=800&auto=format&fit=crop&q=80',
-      tags: ['Pollo', 'Saludable', 'Cena'],
-      ingredients: [
-        { item: 'Pechugas o contramuslos de pollo deshuesados', amount: 600, unit: 'g' },
-        { item: 'Dientes de ajo picados', amount: 3, unit: 'dientes' },
-        { item: 'Jugo de limón y su ralladura', amount: 1, unit: 'pieza' },
-        { item: 'Aceite de oliva virgen extra', amount: 3, unit: 'cucharadas' },
-        { item: 'Romero y tomillo frescos picados', amount: 1, unit: 'cucharada' },
-        { item: 'Pimentón dulce o paprika', amount: 1, unit: 'cucharadita' },
-        { item: 'Sal marina y pimienta negra', amount: 1, unit: 'cucharadita' },
-        { item: 'Verduras salteadas o ensalada fresca para guarnición', amount: 300, unit: 'g' }
-      ],
-      instructions: [
-        'Secar las piezas de pollo con papel de cocina y sazonar con sal, pimienta y pimentón.',
-        'En un tazón, mezclar el aceite de oliva con el ajo picado, las hierbas frescas y el jugo de limón.',
-        'Untar bien el pollo con la mezcla y dejar marinar 15 minutos.',
-        'Calentar una sartén amplia con un chorrito de aceite a fuego medio-alto.',
-        'Cocinar el pollo 6-8 minutos por cada lado hasta que esté bien dorado por fuera y completamente cocinado y jugoso por dentro.',
-        'Retirar y dejar reposar la carne 3 minutos antes de cortar.',
-        'Servir caliente rociando con los jugos de cocción y acompañar con verduras o ensalada.'
-      ]
-    }
-  };
-
-  // Match keyword in corpus
-  let matchedPreset: PresetRecipe | null = null;
-  const keywordMappings: Record<string, string[]> = {
-    taco: ['taco', 'tacos', 'pastor', 'fajita', 'carnitas', 'burrito'],
-    carbonara: ['carbonara', 'espagueti', 'spaghetti', 'fettuccine', 'tagliatelle', 'macarrones'],
-    pizza: ['pizza', 'calzone', 'focaccia'],
-    guacamole: ['guacamole', 'aguacate', 'palta', 'nachos'],
-    brownie: ['brownie', 'brownies', 'fudge', 'chocolatoso'],
-    cheesecake: ['cheesecake', 'tarta de queso', 'pastel de queso', 'tarta queso', 'pie de queso'],
-    pollo: ['pollo', 'pechuga', 'contramuslo', 'chicken', 'alitas']
-  };
-
-  for (const [presetKey, keywords] of Object.entries(keywordMappings)) {
-    if (keywords.some(kw => searchCorpus.includes(kw))) {
-      matchedPreset = recipeDatabase[presetKey];
-      break;
-    }
-  }
-
-  // If matched a preset:
-  if (matchedPreset) {
-    const formattedIngs = matchedPreset.ingredients.map((ing, i) => ({
-      id: `ing-${Date.now()}-${i}`,
-      item: ing.item,
-      amount: ing.amount,
-      unit: ing.unit,
-      checked: false
-    }));
-
-    const formattedSteps = matchedPreset.instructions.map((inst, i) => ({
-      id: `step-${Date.now()}-${i}`,
-      stepNumber: i + 1,
-      instruction: inst,
-      completed: false
-    }));
-
-    return {
-      id: `receta-${Date.now()}`,
-      title: isValidRecipeTitle(pageTitle) ? pageTitle!.trim() : matchedPreset.title,
-      description: pageDescription || matchedPreset.description,
-      sourceUrl: url || '',
-      sourcePlatform: platform as any,
-      author: authorName || `@${platform}_creador`,
-      prepTimeMinutes: matchedPreset.prepTime,
-      cookTimeMinutes: matchedPreset.cookTime,
-      totalTimeMinutes: matchedPreset.prepTime + matchedPreset.cookTime,
-      servings: matchedPreset.servings,
-      category: matchedPreset.category as any,
-      difficulty: matchedPreset.difficulty as any,
-      ingredients: formattedIngs,
-      instructions: formattedSteps,
-      imageUrl: pageImage || matchedPreset.image,
-      tags: matchedPreset.tags,
-      notes: 'Receta estructurada con medidas exactas y preparación guiada.',
-      createdAt: new Date().toISOString()
-    };
-  }
-
-  // 3. Dynamic generic culinary synthesizer based on dish title and culinary profile
-  const rawTitleCandidate = (isValidRecipeTitle(pageTitle) ? pageTitle : '') || (rawText ? rawText.split('\n')[0].slice(0, 70) : '') || 'Plato Especial Casero';
-  const cleanTitle = rawTitleCandidate
-    .replace(/^https?:\/\/[^\s]+/i, '')
-    .replace(/[_-]/g, ' ')
-    .trim() || 'Plato Casero Delicioso';
-
-  const isSweet = /tarta|pastel|postre|dulce|cake|galleta|helado|crepa|pancake|mousse|bizcocho|flan|chocolate|vainilla/i.test(searchCorpus + ' ' + cleanTitle);
-  const isSalad = /ensalada|salad|verdura|vegetal/i.test(searchCorpus + ' ' + cleanTitle);
-  const isDrink = /smoothie|batido|jugo|zumo|coctel|café|bebida/i.test(searchCorpus + ' ' + cleanTitle);
-
-  let genCategory = 'Almuerzo/Cena';
-  let genImage = pageImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
-  let genIngredients: Array<{ id: string; item: string; amount?: number; unit?: string; checked?: boolean }> = [];
-  let genInstructions: Array<{ id: string; stepNumber: number; instruction: string; completed?: boolean }> = [];
-
-  if (isSweet) {
-    genCategory = 'Postre';
-    genImage = pageImage || 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=800&auto=format&fit=crop&q=80';
-    genIngredients = [
-      { id: `ing-${Date.now()}-1`, item: `Ingrediente estrella para ${cleanTitle}`, amount: 300, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-2`, item: 'Harina de trigo todo uso o repostería', amount: 200, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-3`, item: 'Azúcar blanco o mascabado', amount: 150, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-4`, item: 'Mantequilla sin sal a temperatura ambiente', amount: 100, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-5`, item: 'Huevos frescos grandes', amount: 3, unit: 'piezas', checked: false },
-      { id: `ing-${Date.now()}-6`, item: 'Extracto natural de vainilla', amount: 1, unit: 'cucharadita', checked: false },
-      { id: `ing-${Date.now()}-7`, item: 'Pizca de sal y polvo de hornear', amount: 1, unit: 'cucharadita', checked: false }
-    ];
-    genInstructions = [
-      { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: 'Precalentar el horno a 180°C y forrar el molde elegido con papel encerado o engrasar ligeramente.', completed: false },
-      { id: `step-${Date.now()}-2`, stepNumber: 2, instruction: 'En un bol espacioso, batir los huevos junto con el azúcar hasta que doblen su volumen y queden cremosos.', completed: false },
-      { id: `step-${Date.now()}-3`, stepNumber: 3, instruction: `Incorporar la mantequilla pomada, la vainilla y el ingrediente principal de ${cleanTitle}, mezclando suavemente.`, completed: false },
-      { id: `step-${Date.now()}-4`, stepNumber: 4, instruction: 'Tamizar la harina junto con el polvo de hornear y la pizca de sal, e integrar con espátula realizando movimientos envolventes.', completed: false },
-      { id: `step-${Date.now()}-5`, stepNumber: 5, instruction: 'Verter la mezcla en el molde y hornear durante 30-35 minutos hasta que al insertar un palillo en el centro salga limpio. Enfriar antes de servir.', completed: false }
-    ];
-  } else if (isSalad) {
-    genCategory = 'Almuerzo/Cena';
-    genImage = pageImage || 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80';
-    genIngredients = [
-      { id: `ing-${Date.now()}-1`, item: `Hojas verdes frescas (espinaca, rúcula o lechugas mixtas)`, amount: 200, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-2`, item: `Ingrediente principal de ${cleanTitle}`, amount: 250, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-3`, item: 'Tomates cherry cortados a la mitad', amount: 120, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-4`, item: 'Queso fresco en dados o queso feta', amount: 80, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-5`, item: 'Aceite de oliva virgen extra', amount: 3, unit: 'cucharadas', checked: false },
-      { id: `ing-${Date.now()}-6`, item: 'Jugo de limón o vinagre de manzana', amount: 1, unit: 'cucharada', checked: false },
-      { id: `ing-${Date.now()}-7`, item: 'Semillas tostadas o frutos secos crujientes', amount: 2, unit: 'cucharadas', checked: false }
-    ];
-    genInstructions = [
-      { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: 'Lavar y secar muy bien todas las hojas verdes para mantenerlas crujientes.', completed: false },
-      { id: `step-${Date.now()}-2`, stepNumber: 2, instruction: `Preparar y cortar en bocados uniformes el ingrediente principal de ${cleanTitle} y los tomates cherry.`, completed: false },
-      { id: `step-${Date.now()}-3`, stepNumber: 3, instruction: 'En un frasco pequeño, emulsionar el aceite de oliva con el jugo de limón, sal y pimienta agitando vigorosamente.', completed: false },
-      { id: `step-${Date.now()}-4`, stepNumber: 4, instruction: 'Disponer las hojas en una ensaladera, añadir los ingredientes preparados por encima y el queso fresco.', completed: false },
-      { id: `step-${Date.now()}-5`, stepNumber: 5, instruction: 'Aderezar con la vinagreta justo antes de servir y espolvorear las semillas crujientes.', completed: false }
-    ];
-  } else {
-    // Standard savory dish
-    genCategory = 'Almuerzo/Cena';
-    genIngredients = [
-      { id: `ing-${Date.now()}-1`, item: `Ingrediente principal para ${cleanTitle}`, amount: 500, unit: 'g', checked: false },
-      { id: `ing-${Date.now()}-2`, item: 'Cebolla picada en cubos finos', amount: 1, unit: 'pieza', checked: false },
-      { id: `ing-${Date.now()}-3`, item: 'Dientes de ajo finamente picados', amount: 2, unit: 'dientes', checked: false },
-      { id: `ing-${Date.now()}-4`, item: 'Aceite de oliva virgen extra', amount: 2, unit: 'cucharadas', checked: false },
-      { id: `ing-${Date.now()}-5`, item: 'Hierbas aromáticas y especias al gusto', amount: 1, unit: 'cucharadita', checked: false },
-      { id: `ing-${Date.now()}-6`, item: 'Sal marina y pimienta negra recién molida', amount: 1, unit: 'pizca', checked: false },
-      { id: `ing-${Date.now()}-7`, item: 'Guarnición fresca para acompañar', amount: 200, unit: 'g', checked: false }
-    ];
-    genInstructions = [
-      { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: 'Lavar, secar y cortar los ingredientes en trozos uniformes para asegurar una cocción pareja.', completed: false },
-      { id: `step-${Date.now()}-2`, stepNumber: 2, instruction: 'Calentar una sartén o cazuela amplia con el aceite de oliva y sofreír la cebolla con el ajo hasta que estén fragantes y transparentes.', completed: false },
-      { id: `step-${Date.now()}-3`, stepNumber: 3, instruction: `Incorporar el ingrediente principal de ${cleanTitle} y cocinar a fuego medio hasta que tome buen color dorado.`, completed: false },
-      { id: `step-${Date.now()}-4`, stepNumber: 4, instruction: 'Sazonar con las hierbas, sal y pimienta al gusto. Bajar el fuego y dejar cocinar hasta que esté en su punto ideal de cocción.', completed: false },
-      { id: `step-${Date.now()}-5`, stepNumber: 5, instruction: 'Retirar del fuego, reposar un par de minutos y servir caliente con la guarnición seleccionada.', completed: false }
-    ];
-  }
-
+  // 2. Return empty template if AI extraction fails and no text could be parsed
   return {
     id: `receta-${Date.now()}`,
-    title: cleanTitle,
-    description: pageDescription || `Aprende a preparar este delicioso plato de ${cleanTitle} con ingredientes frescos y pasos sencillos.`,
+    title: derivedTitle || 'Nueva Receta',
+    description: `No se pudieron extraer los ingredientes automáticamente. Añádelos manualmente.`,
     sourceUrl: url || '',
     sourcePlatform: platform as any,
     author: authorName || `@${platform}_cocina`,
-    prepTimeMinutes: 15,
-    cookTimeMinutes: 20,
-    totalTimeMinutes: 35,
-    servings: 4,
-    category: genCategory as any,
+    prepTimeMinutes: 10,
+    cookTimeMinutes: 10,
+    totalTimeMinutes: 20,
+    servings: 2,
+    category: 'Almuerzo/Cena' as any,
     difficulty: 'Fácil' as any,
-    ingredients: genIngredients,
-    instructions: genInstructions,
-    imageUrl: genImage,
-    tags: [platform.toUpperCase(), 'Receta Casera', genCategory],
-    notes: 'Puedes ajustar las especias y las cantidades según tus preferencias personales.',
+    ingredients: [
+      { id: `ing-${Date.now()}-1`, item: 'Añade tus ingredientes aquí', amount: null, unit: '', checked: false }
+    ],
+    instructions: [
+      { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: 'Añade los pasos de preparación aquí', completed: false }
+    ],
+    imageUrl: pageImage || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800&auto=format&fit=crop&q=80',
+    tags: ['Para completar'],
+    notes: 'Por favor, introduce la receta manualmente.',
     createdAt: new Date().toISOString()
   };
 }
@@ -991,12 +629,10 @@ app.post(["/api/extract-recipe", "/extract-recipe"], async (req, res) => {
     // 5. Try Gemini API with prioritized models and automatic fallback
     if (apiKey && (contentToAnalyze.trim().length > 0 || pageTitle || rawText || url)) {
       const modelsToTry = [
-        "gemini-3.1-flash-lite",
-        "gemini-3.8-flash",
-        "gemini-flash-latest"
+        "gemini-3.6-flash"
       ];
       
-      const prompt = `Actúa como un extractor de recetas culinarias con FIDELIDAD ABSOLUTA al contenido original en español.
+       const prompt = `Actúa como un extractor de recetas culinarias con FIDELIDAD ABSOLUTA al contenido original en español.
 Tu tarea es extraer y estructurar la receta a partir de los datos reales del video o texto (${platform}):
 
 ${contentToAnalyze}
@@ -1007,7 +643,7 @@ INSTRUCCIONES CRÍTICAS DE PRECISIÓN Y NO ALUCINACIÓN (ESTRICTAMENTE PROHIBIDO
 3. PROHIBIDO INVENTAR INGREDIENTES O PASOS:
    - NO agregues ingredientes que el creador no haya usado (no inventes especias, hierbas, caldos, salsas, quesos ni guarniciones no mostradas).
    - Si la receta es sencilla o minimalista (por ejemplo de 2, 3 o 4 ingredientes), mantén ÚNICAMENTE esos ingredientes. NO inventes ingredientes adicionales "tradicionales".
-   - Los pasos de preparación ("instructions") deben reflejar fielmente las acciones exactas realizadas en el video, en orden cronológico, sin inventar pasos intermedios ni consejos ficticios.
+   - Los pasos de preparación ("instructions") deben ser EXTREMADAMENTE PRECISOS Y DETALLADOS. Divide las acciones lógicamente. Incluye tiempos exactos, temperaturas, herramientas mencionadas (sartenes, batidoras), texturas, colores o señales visuales descritas por el creador (ej: "hasta que esté dorado y crujiente"). NO resumas múltiples acciones complejas en un solo paso. Mantén el orden cronológico estricto.
 4. CANTIDADES REALES:
    - Si el autor no menciona la cantidad exacta de un ingrediente, coloca "amount": null y en "unit" pon "al gusto" o déjalo vacío. NO inventes números ni medidas al azar.
 5. TÍTULO Y DESCRIPCIÓN:
@@ -1201,7 +837,7 @@ ${durationSeconds ? `Duración aproximada del video: ${durationSeconds} segundos
 Examina cuidadosamente las imágenes para identificar:
 1. Qué plato o receta se está preparando (ingredientes visibles, técnica de cocción, emplatado final).
 2. La lista completa de ingredientes con cantidades estimadas razonables en gramos, ml, unidades o tazas.
-3. Los pasos ordenados de preparación que se aprecian en la secuencia del video.
+3. Los pasos ordenados de preparación que se aprecian en la secuencia del video. Hazlos EXTREMADAMENTE PRECISOS Y DETALLADOS. Divide las acciones lógicamente. Incluye herramientas visibles, colores, texturas y señales visuales de cocción (ej: "hasta que dore").
 4. Tiempos estimados de preparación y cocción.
 5. Dificultad y categoría culinaria adecuada.
 
@@ -1226,9 +862,7 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
 
     if (apiKey) {
       const modelsToTry = [
-        "gemini-3.1-flash-lite",
-        "gemini-3.8-flash",
-        "gemini-flash-latest"
+        "gemini-3.6-flash"
       ];
       const imageParts = frames.slice(0, 4).map((dataUrl: string) => {
         const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
@@ -1350,28 +984,24 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
     const fallbackRecipe = {
       id: `receta-video-${Date.now()}`,
       title: cleanTitle,
-      description: notes || "Receta subida desde video del teléfono móvil. Puedes ajustar las cantidades y pasos a tu gusto.",
+      description: notes || "No se pudieron extraer los ingredientes del video. Por favor añádelos manualmente.",
       sourceUrl: "",
       sourcePlatform: 'video_upload',
       author: 'Mi Teléfono Móvil',
-      prepTimeMinutes: 15,
-      cookTimeMinutes: 20,
-      totalTimeMinutes: 35,
-      servings: 4,
+      prepTimeMinutes: 10,
+      cookTimeMinutes: 10,
+      totalTimeMinutes: 20,
+      servings: 2,
       category: 'Almuerzo/Cena',
-      difficulty: 'Media',
+      difficulty: 'Fácil',
       ingredients: [
-        { id: `ing-${Date.now()}-1`, item: "Ingredientes principales según video", amount: 1, unit: "porción", checked: false },
-        { id: `ing-${Date.now()}-2`, item: "Aceite de oliva virgen extra", amount: 2, unit: "cucharadas", checked: false },
-        { id: `ing-${Date.now()}-3`, item: "Sal y pimienta", amount: null, unit: "al gusto", checked: false }
+        { id: `ing-${Date.now()}-1`, item: "Añade tus ingredientes aquí", amount: null, unit: "", checked: false }
       ],
       instructions: [
-        { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: "Preparar y cortar los ingredientes observados en el video." },
-        { id: `step-${Date.now()}-2`, stepNumber: 2, instruction: "Cocinar a fuego medio siguiendo la técnica mostrada en el video." },
-        { id: `step-${Date.now()}-3`, stepNumber: 3, instruction: "Servir caliente y rectificar de sal y condimentos." }
+        { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: "Añade los pasos de preparación aquí." }
       ],
       imageUrl: frames[frames.length - 1] || frames[0],
-      tags: ["Video Móvil", "Casero"],
+      tags: ["Para Completar"],
       createdAt: new Date().toISOString()
     };
 
@@ -1387,28 +1017,24 @@ Devuelve EXCLUSIVAMENTE un objeto JSON válido con esta estructura exacta:
       const emergencyRecipe = {
         id: `receta-video-${Date.now()}`,
         title: req.body?.videoTitle || "Receta Casera de Video",
-        description: "Receta procesada desde video. Puedes ajustar los ingredientes y pasos a tu gusto.",
+        description: "No se pudieron extraer los ingredientes del video. Por favor añádelos manualmente.",
         sourceUrl: "",
         sourcePlatform: 'video_upload',
         author: 'Mi Teléfono Móvil',
-        prepTimeMinutes: 15,
-        cookTimeMinutes: 20,
-        totalTimeMinutes: 35,
-        servings: 4,
+        prepTimeMinutes: 10,
+        cookTimeMinutes: 10,
+        totalTimeMinutes: 20,
+        servings: 2,
         category: 'Almuerzo/Cena',
-        difficulty: 'Media',
+        difficulty: 'Fácil',
         ingredients: [
-          { id: `ing-${Date.now()}-1`, item: "Ingredientes principales según video", amount: 1, unit: "porción", checked: false },
-          { id: `ing-${Date.now()}-2`, item: "Aceite de oliva virgen extra", amount: 2, unit: "cucharadas", checked: false },
-          { id: `ing-${Date.now()}-3`, item: "Sal y pimienta", amount: null, unit: "al gusto", checked: false }
+          { id: `ing-${Date.now()}-1`, item: "Añade tus ingredientes aquí", amount: null, unit: "", checked: false }
         ],
         instructions: [
-          { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: "Preparar y cortar los ingredientes observados en el video." },
-          { id: `step-${Date.now()}-2`, stepNumber: 2, instruction: "Cocinar a fuego medio siguiendo la técnica mostrada en el video." },
-          { id: `step-${Date.now()}-3`, stepNumber: 3, instruction: "Servir caliente y rectificar de sal y condimentos." }
+          { id: `step-${Date.now()}-1`, stepNumber: 1, instruction: "Añade los pasos de preparación aquí." }
         ],
         imageUrl: (req.body?.frames && req.body.frames[0]) || 'https://images.unsplash.com/photo-1495521821757-a1efb6729352?w=800&auto=format&fit=crop&q=80',
-        tags: ["Video Móvil", "Casero"],
+        tags: ["Para Completar"],
         createdAt: new Date().toISOString()
       };
       return res.json({
