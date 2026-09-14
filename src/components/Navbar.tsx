@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChefHat, Plus, Download, Upload, Sparkles, RefreshCw, Smartphone } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChefHat, Plus, Download, Upload, Share2, Check, MessageCircle } from 'lucide-react';
 
 interface Props {
   recipeCount: number;
@@ -18,6 +18,33 @@ export const Navbar: React.FC<Props> = ({
   onOpenMobileConnectModal,
   onOpenInstallModal
 }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleShareApp = () => {
+    const shareUrl = window.location.href;
+    const shareText = '¡Mira esta aplicación para guardar y extraer recetas de redes sociales con IA y búsqueda en la red!';
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Recetas Social',
+        text: shareText,
+        url: shareUrl
+      }).catch(() => {
+        window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+      });
+    } else {
+      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(`${shareText} ${shareUrl}`).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }).catch(() => {});
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -37,6 +64,26 @@ export const Navbar: React.FC<Props> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
+          
+          <button
+            id="btn-share-app-whatsapp"
+            onClick={handleShareApp}
+            title="Compartir por WhatsApp"
+            className="p-1.5 sm:px-2.5 sm:py-1.5 hover:bg-emerald-50 active:bg-emerald-100 transition-colors flex items-center gap-1.5 rounded-md border border-emerald-300 bg-white shadow-2xs text-emerald-700 font-medium"
+          >
+            {copied ? (
+              <>
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span className="text-[11px] font-semibold text-emerald-600">¡Copiado!</span>
+              </>
+            ) : (
+              <>
+                <MessageCircle className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline text-[11px] font-semibold">WhatsApp</span>
+              </>
+            )}
+          </button>
+
           {/* Badge counter */}
           <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 text-stone-700 text-xs font-medium border border-stone-200">
             <span>Recetas:</span>

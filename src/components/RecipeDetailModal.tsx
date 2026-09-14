@@ -63,6 +63,8 @@ export const RecipeDetailModal: React.FC<Props> = ({
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
+  const [isReextracting, setIsReextracting] = useState(false);
+
   useEffect(() => {
     if (!recipe) return;
     setCurrentServings(recipe.servings || 2);
@@ -75,6 +77,61 @@ export const RecipeDetailModal: React.FC<Props> = ({
     (recipe.instructions || []).forEach(s => { initSteps[s.id] = !!s.completed; });
     setCompletedSteps(initSteps);
   }, [recipe]);
+
+  const handleReextract = async () => {
+    if (!recipe || (!recipe.sourceUrl && recipe.sourcePlatform !== 'video_upload')) {
+      onShowToast('error', 'Error', 'No hay datos originales para re-extraer.');
+      return;
+    }
+    
+    if (recipe.sourcePlatform === 'video_upload') {
+       onShowToast('info', 'Re-extrayendo...', 'Conectando con la IA para procesar nuevamente el video.');
+       // We can't really re-extract a video from just the recipe object because the frames are gone
+       // So we inform the user to re-upload
+       onShowToast('warning', 'Sube el video de nuevo', 'Para re-extraer un video subido, por favor súbelo de nuevo desde la pantalla principal.');
+       setIsReextracting(false);
+       return;
+    }
+    
+    setIsReextracting(true);
+    onShowToast('info', 'Re-extrayendo...', 'Conectando con la IA para procesar nuevamente el enlace original.');
+    
+    try {
+      const response = await fetch('/api/extract-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: recipe.sourceUrl,
+          platformHint: recipe.sourcePlatform
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar la receta');
+      }
+      
+      if (data.recipe) {
+        const updatedRecipe = {
+          ...recipe,
+          ...data.recipe,
+          id: recipe.id, // Preserve existing ID so it updates the same item
+          createdAt: recipe.createdAt, // Preserve original date
+          updatedAt: new Date().toISOString()
+        };
+        onUpdateRecipe(updatedRecipe);
+        onShowToast('success', 'Receta re-extraída', 'Se han actualizado los ingredientes y pasos.');
+      } else {
+        throw new Error('No se encontraron datos.');
+      }
+    } catch (err: any) {
+      console.error('Error re-extracting:', err);
+      onShowToast('error', 'Error de extracción', err.message || 'No se pudo re-extraer la receta.');
+    } finally {
+      setIsReextracting(false);
+    }
+  };
 
   if (!recipe) return null;
 
@@ -255,6 +312,34 @@ export const RecipeDetailModal: React.FC<Props> = ({
 
           {/* Body Info Bar */}
           <div className="p-5 sm:p-7 space-y-6">
+            {/* Re-extract Alert Banner */}
+            {(recipe.sourceUrl || recipe.sourcePlatform === 'video_upload') && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-amber-900 text-sm">¿Faltan datos de la receta original?</h4>
+                    <p className="text-xs text-amber-700">Pídele a la Inteligencia Artificial que extraiga los pasos e ingredientes de nuevo.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReextract}
+                  disabled={isReextracting}
+                  className={`shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl shadow-sm transition-all ${
+                    isReextracting 
+                      ? 'bg-amber-400 cursor-not-allowed opacity-80' 
+                      : 'bg-amber-600 hover:bg-amber-500 active:scale-95'
+                  }`}
+                >
+                  <Sparkles className={`w-4 h-4 ${isReextracting ? 'animate-pulse' : ''}`} />
+                  <span>{isReextracting ? 'Extrayendo...' : 'Re-extraer con IA'}</span>
+                </button>
+              </div>
+            )}
+
             {/* Quick Metrics & Actions */}
             <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-stone-50 border border-stone-200">
               <div className="flex items-center gap-4 sm:gap-6 text-xs sm:text-sm text-stone-700">
